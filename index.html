@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>To Dry or Not to Dry</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dry or Not">
+<meta name="theme-color" content="#EDF2EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1511" media="(prefers-color-scheme: dark)">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+img{max-width:100%}
+/* Layout: one phone-width column, sticky header, fixed 5-tab bar at the bottom; green = dry, claret = drinks, gold = money */
+:root{
+  --bg:#EDF2EE; --surface:#FFFFFF; --ink:#13211A; --muted:#5B6C63; --line:#D3DDD6;
+  --dry:#1E8749; --dry-soft:#D5EDDC; --on-dry:#FFFFFF;
+  --wet:#B5263D; --wet-soft:#F5D8DD; --on-wet:#FFFFFF;
+  --gold:#A87A10; --gold-soft:#F3E5C2;
+  --font-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --font-body:"DM Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  --r:18px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1511; --surface:#16211B; --ink:#E4EEE8; --muted:#93A59B; --line:#28372F;
+  --dry:#4CC27E; --dry-soft:#163725; --on-dry:#06160D;
+  --wet:#F06A7E; --wet-soft:#3B1820; --on-wet:#22070C;
+  --gold:#E3B64C; --gold-soft:#372C10; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0D1511; --surface:#16211B; --ink:#E4EEE8; --muted:#93A59B; --line:#28372F;
+  --dry:#4CC27E; --dry-soft:#163725; --on-dry:#06160D;
+  --wet:#F06A7E; --wet-soft:#3B1820; --on-wet:#22070C;
+  --gold:#E3B64C; --gold-soft:#372C10; color-scheme:dark;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--dry);outline-offset:2px}
+.gut{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);padding-top:env(safe-area-inset-top,0px)}
+header.top .gut{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:12px 10px}
+.brand{font-family:var(--font-display);font-weight:800;font-size:21px;letter-spacing:-.015em;line-height:1.1}
+.brand .d{color:var(--dry)} .brand .n{color:var(--wet)}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.sync{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.sync.ok{background:var(--dry)} .sync.bad{background:var(--wet)}
+main.gut{padding-block:6px calc(100px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs .row{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+nav.tabs button{background:none;border:0;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11.5px;font-weight:500;color:var(--muted);position:relative}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
+nav.tabs button[aria-current="page"] svg{stroke:var(--dry)}
+.dot{position:absolute;top:9px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--wet);border:2px solid var(--surface)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h2{font-family:var(--font-display);font-weight:800;font-size:22px;line-height:1.15;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h3{font-family:var(--font-display);font-weight:600;font-size:18px;margin:0}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.num{font-variant-numeric:tabular-nums}
+.hero{padding:20px 16px;gap:16px}
+.hero .q{font-family:var(--font-display);font-weight:800;font-size:clamp(30px,9vw,40px);line-height:1.02;letter-spacing:-.025em;text-wrap:balance}
+.hero .q .d{color:var(--dry)} .hero .q .n{color:var(--wet);text-decoration:line-through;text-decoration-thickness:3px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big{border:0;border-radius:16px;min-height:76px;padding:12px;font-weight:700;font-size:17px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;text-align:left}
+.big small{font-weight:500;font-size:13px;opacity:.85}
+.big.dry{background:var(--dry);color:var(--on-dry)}
+.big.wet{background:var(--wet);color:var(--on-wet)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px;font-weight:700;min-height:44px}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.dry{background:var(--dry);color:var(--on-dry);border-color:var(--dry)}
+.btn.wet{background:var(--wet);color:var(--on-wet);border-color:var(--wet)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--wet);background:transparent;border-color:var(--wet)}
+.btn.full{width:100%}
+.status{border-radius:16px;padding:14px;display:flex;gap:12px;align-items:center}
+.status.dry{background:var(--dry-soft)} .status.wet{background:var(--wet-soft)}
+.status .badge{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex:none}
+.status.dry .badge{background:var(--dry);color:var(--on-dry)} .status.wet .badge{background:var(--wet);color:var(--on-wet)}
+.status .t{flex:1;min-width:0}
+.streak{display:flex;align-items:flex-end;gap:14px}
+.streak .big-n{font-family:var(--font-display);font-weight:800;font-size:64px;line-height:.9;color:var(--dry);letter-spacing:-.03em}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.week div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+.pip{width:100%;aspect-ratio:1;max-width:38px;border-radius:10px;background:var(--bg);border:1px dashed var(--line)}
+.pip.dry{background:var(--dry);border:0} .pip.wet{background:var(--wet);border:0}
+.pip.future{border-style:solid;opacity:.45}
+.pip.now{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
+.week .is-today{color:var(--ink);font-weight:700}
+.install{border:2px solid var(--dry)}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.steps li{display:flex;gap:10px;align-items:flex-start;font-size:15px}
+.steps .n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--dry);color:var(--on-dry);display:grid;place-items:center;font-weight:700;font-size:14px}
+.steps .share{width:20px;height:20px;vertical-align:-4px;color:var(--dry)}
+.cur-results{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.cur-results button{border:0;border-top:1px solid var(--line);background:var(--surface);text-align:left;padding:12px;min-height:48px;display:flex;justify-content:space-between;gap:10px}
+.cur-results button:first-child{border-top:0}
+.cur-results button b{font-variant-numeric:tabular-nums}
+.need{border-color:var(--wet)!important;background:var(--wet-soft)!important}
+.banner{background:var(--gold-soft);border-radius:16px;padding:14px;display:flex;gap:12px;align-items:center}
+.banner .t{flex:1;min-width:0}
+.tip{border-left:0;background:var(--surface)}
+.tip .quote{font-family:var(--font-display);font-weight:600;font-size:18px;line-height:1.3}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;border-radius:9px;min-height:38px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile .v{font-family:var(--font-display);font-weight:800;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tile.g .v{color:var(--dry)} .tile.r .v{color:var(--wet)} .tile.m .v{color:var(--gold)}
+.bar{height:12px;border-radius:999px;background:var(--bg);overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--dry);border-radius:999px}
+.bar.over i{background:var(--wet)}
+.bar.gold i{background:var(--gold)}
+.badges{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.bdg{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:12px 6px;border-radius:14px;border:1px solid var(--line);background:var(--surface);font-size:12.5px;font-weight:600;min-width:0}
+.bdg .medal{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-weight:800;font-size:15px;background:var(--bg);color:var(--muted);border:2px dashed var(--line)}
+.bdg.on .medal{background:var(--gold-soft);color:var(--gold);border:2px solid var(--gold)}
+.bdg:not(.on){color:var(--muted)}
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal .dow{font-size:12px;font-weight:700;color:var(--muted);text-align:center;padding-bottom:2px}
+.cal button{aspect-ratio:1;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:15px;font-variant-numeric:tabular-nums;padding:0;min-width:0}
+.cal button.dry{background:var(--dry);color:var(--on-dry);border-color:var(--dry)}
+.cal button.wet{background:var(--wet);color:var(--on-wet);border-color:var(--wet)}
+.cal button.today{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--ink)}
+.cal button:disabled{opacity:.35;cursor:default}
+.cal .blank{aspect-ratio:1}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.list{display:flex;flex-direction:column}
+.list .item{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.list .item:first-child{border-top:0}
+.list .item .t{flex:1;min-width:0}
+.emo{font-size:22px;width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:var(--bg);flex:none}
+.nudges{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nudge{border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:12px;text-align:left;display:flex;gap:10px;align-items:center;font-weight:600;font-size:14.5px;min-height:56px}
+.nudge span:first-child{font-size:22px}
+.new{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--on-wet);background:var(--wet);border-radius:6px;padding:1px 6px;margin-left:6px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted);min-width:0}
+input[type=text],input[type=number],input:not([type]),select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px;min-height:44px;font-size:16px;color:var(--ink)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.drink-row{border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--surface)}
+.drink-row .hd{display:flex;gap:8px;align-items:center}
+.drink-row .hd input{flex:1}
+.stepper{display:flex;align-items:center;gap:6px;flex:none}
+.stepper button{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:20px;font-weight:700;line-height:1}
+.stepper output{min-width:24px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;font-size:18px}
+.line{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.line:first-child{border-top:0}
+.line .t{flex:1;min-width:0}
+.sum{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-weight:700;font-variant-numeric:tabular-nums}
+/* bottom sheet */
+#sheet{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;justify-content:flex-end;background:rgba(5,12,8,.45)}
+#sheet .panel{background:var(--bg);border-radius:22px 22px 0 0;max-height:92%;overflow:auto;padding-top:8px;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+#sheet .panel .gut{display:flex;flex-direction:column;gap:14px}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 6px}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--bg);border-radius:14px;padding:12px 16px;font-weight:600;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.picker{min-height:70vh;display:flex;flex-direction:column;justify-content:center;gap:18px}
+.picker .two .big{min-height:110px;font-size:24px;font-family:var(--font-display)}
+.note{font-size:13px;color:var(--muted)}
+.empty{text-align:center;padding:12px 0;color:var(--muted);font-size:14px}
+@media (prefers-reduced-motion:no-preference){.big,.btn,.nudge,.cal button{transition:transform .12s ease}.big:active,.btn:active,.nudge:active{transform:scale(.97)}}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="gut">
+  <div class="brand">To <span class="d">Dry</span> or <span class="n">Not</span> to <span class="d">Dry</span></div>
+  <button class="chip" id="whoChip" data-act="tab" data-tab="settings" aria-label="Who's using this phone"><span class="sync" id="syncDot"></span><span id="whoName">…</span></button>
+</div></header>
+
+<main class="gut" id="view">
+  <div class="card"><p class="muted">Loading your log…</p></div>
+</main>
+
+<nav class="tabs" aria-label="Sections"><div class="row">
+  <button data-act="tab" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>Today</button>
+  <button data-act="tab" data-tab="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Calendar</button>
+  <button data-act="tab" data-tab="progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M9 14l-2 7 5-3 5 3-2-7"/></svg>Progress</button>
+  <button data-act="tab" data-tab="together"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3.5"/><circle cx="17" cy="9" r="3"/><path d="M2 20c0-3.5 3-5.5 6-5.5s6 2 6 5.5M14 15c3.5-.5 7 1 7 5"/></svg>Together<i class="dot" id="nudgeDot" hidden></i></button>
+  <button data-act="tab" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Settings</button>
+</div></nav>
+
+<div id="sheet" hidden><div class="panel" id="sheetPanel"></div></div>
+<div id="toast" hidden role="status"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+
+<script>
+/* ---------- constants ---------- */
+const NAMES = {ant:'Ant', jules:'Jules'};
+const other = w => w === 'ant' ? 'jules' : 'ant';
+// Every world currency, searchable. Common ones are listed first.
+const COMMON = ['GBP','EUR','USD','THB','LKR','AUD','SGD','AED','INR','MYR','IDR','VND','JPY','HKD','CAD','NZD','CHF','ZAR'];
+let ALL_CURS = COMMON;
+try {if (Intl.supportedValuesOf) ALL_CURS = [...new Set([...COMMON, ...Intl.supportedValuesOf('currency')])];} catch(e){}
+let CUR_NAMES = null; try {CUR_NAMES = new Intl.DisplayNames(['en-GB'], {type:'currency'});} catch(e){}
+const curName = c => {try {return (CUR_NAMES && CUR_NAMES.of(c)) || c;} catch(e){return c;}};
+const fmtCache = {};
+const DEFAULT_RATES = {GBP:1, LKR:395, THB:43};   // units of currency per £1, editable in Settings
+const DEFAULT_GOAL = {name:'Weekend away', amount:600, currency:'GBP'};
+const UK_WEEKLY_UNITS = 14;
+// ml and abv are for the alcoholic part; UK units = ml × abv% ÷ 1000
+const PRESETS = [
+  {key:'gt',     name:'Gin & tonic (single)',  ml:25,  abv:40,  kcal:105, price:{LKR:1400, THB:200, GBP:8}},
+  {key:'bbeer',  name:'Beer, bottle 330ml',    ml:330, abv:5,   kcal:140, price:{LKR:800,  THB:90,  GBP:5}},
+  {key:'lbeer',  name:'Beer, large 625ml',     ml:625, abv:5,   kcal:265, price:{LKR:1200, THB:120, GBP:6.5}},
+  {key:'pint',   name:'Pint of lager 4%',      ml:568, abv:4,   kcal:180, price:{LKR:1100, THB:150, GBP:5.5}},
+  {key:'wine',   name:'Wine, 175ml glass',     ml:175, abv:12.5,kcal:160, price:{LKR:2200, THB:250, GBP:8.5}},
+  {key:'dbl',    name:'Double spirit & mixer', ml:50,  abv:40,  kcal:190, price:{LKR:2000, THB:260, GBP:11}},
+  {key:'arrack', name:'Arrack & soda (double)',ml:50,  abv:33,  kcal:115, price:{LKR:700,  THB:150, GBP:6}},
+  {key:'cider',  name:'Cider, pint',           ml:568, abv:4.5, kcal:215, price:{LKR:1400, THB:180, GBP:5.8}},
+  {key:'fizz',   name:'Prosecco, 125ml',       ml:125, abv:11,  kcal:90,  price:{LKR:2400, THB:280, GBP:8}},
+];
+const TIPS = [
+  'Have your first drink of the evening be a big glass of water. Thirst often feels like wanting a beer.',
+  'Cravings usually peak and fade within 20 minutes. Log it, set a timer, and see.',
+  'Soda water, fresh lime and plenty of ice in a proper glass scratches the G&T itch.',
+  'Plan the dry evening: decide what you will drink before you get to the bar, not when you are there.',
+  'Two dry days in a row each week gives your liver a real break. That is the NHS advice.',
+  '14 units a week is the UK low-risk guideline. Spread it over 3 or more days if you do drink.',
+  'A large 625ml beer at 5% is just over 3 units. Two of them is nearly half the weekly guideline.',
+  'Alcohol wrecks deep sleep. Notice how you feel the morning after a dry day.',
+  'Swap the habit, not just the drink: a walk, a swim or a call home at the time you would normally pour.',
+  'Hungry? Low blood sugar feels a lot like wanting a drink. Eat something first.',
+  'Say it out loud: "I am not drinking tonight." It is easier to stick to once someone else has heard it.',
+  'Tell the bar staff early. Most places will happily make you something interesting without alcohol.',
+  'Every dry day here goes straight into the weekend-away fund. Check the Progress tab.',
+  'Fancied one and did not have it? Log the craving. Seeing them beaten adds up.',
+  'A gin and tonic is around 100 kcal. A week of them is about a takeaway pizza.',
+  'Alcohol is a diuretic. In the heat of Phuket or Colombo, dry days mean better hydration.',
+  'Change the setting: if sundowners are the trigger, try a sunset walk instead of the beach bar.',
+  'Alcohol-free beer has come a long way. Keep a few cold in the fridge for the 6pm moment.',
+  'Send the other one a thumbs-up. Accountability works better as encouragement than as nagging.',
+  'If you do drink, alternate each drink with a glass of water and stop at your number.',
+  'Long weekends and Fridays are the hardest. Plan something for Friday evening in advance.',
+  'Kombucha, ginger beer or a shrub with soda all feel like a grown-up drink.',
+  'A streak is nice, but a slip is not a reset of everything you have saved. Pick up tomorrow.',
+  'Track how you feel, not just what you drink. Mood and energy often improve before the scales move.',
+  'Boredom is a big trigger. Have a short list of things you can start in five minutes.',
+  'Out with friends? Be the driver. It answers the "go on, have one" question for you.',
+  'A pint of 4% lager is 2.3 units, and a 175ml glass of wine is about 2.2.',
+  'Go to bed 30 minutes earlier on dry nights. You will notice the difference by the weekend.',
+  'Notice the first-drink thought. Name it ("there is the 6pm voice") and let it pass.',
+  'Weekly check: look at the calendar together on Sunday and pick next week\'s dry days.',
+];
+const NUDGE_OPTS = [
+  {e:'👍', t:'Thumbs up, proud of you'},
+  {e:'💪', t:'Keep going, you\'ve got this'},
+  {e:'🍋', t:'Soda and lime tonight?'},
+  {e:'🔔', t:'Don\'t forget to check in'},
+  {e:'❤️', t:'Missing you'},
+  {e:'🎉', t:'Nice streak!'},
+];
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LS = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const pad = n => String(n).padStart(2,'0');
+const dkey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseKey = k => {const [y,m,d] = k.split('-').map(Number); return new Date(y, m-1, d);};
+const addDays = (d,n) => {const x = new Date(d); x.setDate(x.getDate()+n); return x;};
+const todayKey = () => dkey(new Date());
+const num = v => {const n = parseFloat(v); return isFinite(n) ? n : 0;};
+const r1 = n => Math.round(n*10)/10;
+function money(a, cur){
+  const dp = (rates()[cur] || 1) >= 20 ? 0 : 2;   // no pence for currencies with big numbers (baht, rupees, yen)
+  const k = cur + dp;
+  try {
+    fmtCache[k] = fmtCache[k] || new Intl.NumberFormat('en-GB', {style:'currency', currency:cur, currencyDisplay:'narrowSymbol', minimumFractionDigits:dp, maximumFractionDigits:dp});
+    return fmtCache[k].format(a);
+  } catch(e){return cur + ' ' + a.toFixed(dp);}
+}
+const unitsOf = d => (num(d.ml) * num(d.abv)) / 1000;
+const newId = () => 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const fromPreset = (p, qty) => ({id:newId(), name:p.name, ml:p.ml, abv:p.abv, kcal:p.kcal, price:{...p.price}, qty});
+const fmtDate = k => parseKey(k).toLocaleDateString('en-GB',{weekday:'short', day:'numeric', month:'short'});
+const ago = ts => {const m = Math.round((Date.now()-ts)/60000); if (m<1) return 'just now'; if (m<60) return m+' min ago'; const h = Math.round(m/60); if (h<24) return h+' h ago'; const d = Math.round(h/24); return d===1?'yesterday':d+' days ago';};
+
+/* ---------- state ---------- */
+// The private link carries who you are and the shared household key, e.g. #jules.AbC123...
+(function readLink(){
+  const m = (location.hash || '').match(/^#(ant|jules)\.([A-Za-z0-9]{16,64})$/);
+  if (m){LS.set('tdnd.me', m[1]); LS.set('tdnd.key', m[2]);}
+})();
+const HKEY = LS.get('tdnd.key') || ((location.hash.match(/\.([A-Za-z0-9]{16,64})$/) || [])[1]) || null;
+const S = {
+  me: LS.get('tdnd.me'), tab: 'today', db: null, uid: null,
+  people: {}, config: null, logs: {}, cravings: {}, nudges: {},
+  loaded: new Set(), sync: 'loading', canWrite: true,
+  calWho: null, calMonth: null, progWho: 'me', sheet: null, draft: null, confirmDel: false,
+};
+function defaultPerson(w){return {currency: w==='ant' ? 'LKR' : 'THB', drinks:[fromPreset(PRESETS[0],1), fromPreset(PRESETS[1],1)], isDefault:true};}
+const person = w => S.people[w] || defaultPerson(w);
+const rates = () => ({...DEFAULT_RATES, ...(S.config?.rates || {})});
+const goal = () => ({...DEFAULT_GOAL, ...(S.config?.goal || {})});
+const conv = (a, from, to) => {const r = rates(); return a / (r[from]||1) * (r[to]||1);};
+function typical(w, cur){
+  const p = person(w); cur = cur || p.currency;
+  return p.drinks.reduce((t,d) => {const q = num(d.qty); t.cost += q*num(d.price?.[cur]); t.units += q*unitsOf(d); t.kcal += q*num(d.kcal); t.count += q; return t;}, {cost:0, units:0, kcal:0, count:0});
+}
+const logsOf = w => Object.values(S.logs).filter(l => l.who === w);
+const logFor = (w, k) => S.logs[`${w}_${k}`];
+
+function streaks(w){
+  const map = new Map(logsOf(w).map(l => [l.date, l.type]));
+  let d = new Date(); const tk = dkey(d);
+  if (!map.has(tk)) d = addDays(d,-1);
+  let cur = 0;
+  while (map.get(dkey(d)) === 'dry'){cur++; d = addDays(d,-1);}
+  const dry = [...map].filter(([,t]) => t==='dry').map(([k]) => k).sort();
+  let best = 0, run = 0, prev = null;
+  for (const k of dry){run = (prev && dkey(addDays(parseKey(prev),1))===k) ? run+1 : 1; best = Math.max(best,run); prev = k;}
+  return {cur, best};
+}
+function totals(ws, cur){
+  const t = {saved:0, spent:0, dry:0, wet:0, kcalAvoided:0, kcalIn:0, units7:0, unitsAll:0, cravings:0};
+  const from = dkey(addDays(new Date(), -6));
+  for (const w of ws){
+    for (const l of logsOf(w)){
+      const a = conv(num(l.amount), l.cur || 'GBP', cur);
+      if (l.type === 'dry'){t.saved += a; t.dry++; t.kcalAvoided += num(l.kcal);}
+      else {t.spent += a; t.wet++; t.kcalIn += num(l.kcal); t.unitsAll += num(l.units); if (l.date >= from) t.units7 += num(l.units);}
+    }
+    t.cravings += (S.cravings[w]?.items || []).length;
+  }
+  return t;
+}
+function badgesFor(ws){
+  const g = totals(ws, 'GBP'); const best = Math.max(...ws.map(w => streaks(w).best));
+  const gl = goal(); const pooled = totals(['ant','jules'], gl.currency).saved;
+  const cur = ws.length===1 ? person(ws[0]).currency : gl.currency;
+  const m = gbp => money(conv(gbp,'GBP',cur), cur).replace(/\.00$/,'');
+  return [
+    {k:'1', label:'First dry day', on:g.dry>=1},
+    {k:'7', label:'7 dry days', on:g.dry>=7},
+    {k:'30', label:'30 dry days', on:g.dry>=30},
+    {k:'100', label:'100 dry days', on:g.dry>=100},
+    {k:'7↑', label:'7-day streak', on:best>=7},
+    {k:'30↑', label:'30-day streak', on:best>=30},
+    {k:'50', label:`Saved ${m(50)}`, on:g.saved>=50},
+    {k:'250', label:`Saved ${m(250)}`, on:g.saved>=250},
+    {k:'1k', label:`Saved ${m(1000)}`, on:g.saved>=1000},
+    {k:'10✕', label:'10 cravings beaten', on:g.cravings>=10},
+    {k:'50✕', label:'50 cravings beaten', on:g.cravings>=50},
+    {k:'★', label:`${gl.name} funded`, on:pooled>=gl.amount && gl.amount>0},
+  ];
+}
+
+/* ---------- sync ---------- */
+function setSync(s){S.sync = s; const dot = $('#syncDot'); dot.className = 'sync' + (s==='ok' ? ' ok' : s==='off'||s==='slow' ? ' bad' : '');}
+async function write(path, data){
+  if (!S.db){toast('Not connected. Open the app from your private link.'); return false;}
+  try {await S.db.doc(path).set(data); return true;}
+  catch(e){
+    if (e?.code === 'unavailable'){await new Promise(r => setTimeout(r, 600 + Math.random()*800)); try {await S.db.doc(path).set(data); return true;} catch(e2){e = e2;}}
+    if (e?.code === 'permission-denied'){S.canWrite = false; toast('Saving was refused. Open the app from your private link again.');}
+    else if (e?.code === 'resource-exhausted') toast('The free database limit was reached for today. Try again tomorrow.');
+    else toast('Could not save. Check your connection and try again.');
+    return false;
+  }
+}
+async function remove(path){if (!S.db) return; try {await S.db.doc(path).delete();} catch(e){toast('Could not delete. Try again.');}}
+
+async function boot(){
+  render();
+  if (!HKEY){setSync('off'); render(); return;}
+  let db = null;
+  try {
+    if (!window.firebase || !window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.projectId) throw new Error('no config');
+    if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
+    const fs = firebase.firestore();
+    try {await fs.enablePersistence({synchronizeTabs:true});} catch(e){}   // works offline, syncs when back online
+    const base = 'households/' + HKEY + '/';
+    db = {doc: p => fs.doc(base + p), collection: p => fs.collection(base + p)};
+  } catch(e){setSync('off'); render(); return;}
+  S.db = db;
+  const need = ['people','config','logs','cravings','nudges'];
+  const timer = setTimeout(() => {if (S.loaded.size < need.length){setSync('slow'); render(true);}}, 10000);
+  const done = (k, snap) => {if (!snap.metadata.fromCache) S.loaded.add(k); if (S.loaded.size === need.length){clearTimeout(timer); setSync('ok');} render(true);};
+  const fail = e => {clearTimeout(timer); setSync('off'); render(true);};
+  const coll = (name, target, key) => db.collection(name).onSnapshot(snap => {
+    const o = {}; snap.docs.forEach(d => o[d.id] = d.data()); S[target] = o;
+    if (key === 'nudges') checkNewNudges();
+    done(key, snap);
+  }, fail);
+  coll('people','people','people');
+  coll('logs','logs','logs');
+  coll('cravings','cravings','cravings');
+  coll('nudges','nudges','nudges');
+  db.doc('config/shared').onSnapshot(snap => {S.config = snap.exists ? snap.data() : null; done('config', snap);}, fail);
+}
+
+/* ---------- nudges ---------- */
+let toastedTs = Number(LS.get('tdnd.toasted') || 0);
+function incoming(){if (!S.me) return []; return (S.nudges[other(S.me)]?.items || []).filter(n => n.to === S.me);}
+function unseen(){const seen = Number(LS.get('tdnd.seen') || 0); return incoming().filter(n => n.ts > seen);}
+function checkNewNudges(){
+  const fresh = incoming().filter(n => n.ts > toastedTs && Date.now() - n.ts < 86400000);
+  if (fresh.length && S.tab !== 'together'){const n = fresh[fresh.length-1]; toast(`${NAMES[other(S.me)]}: ${n.e} ${n.t}`);}
+  if (fresh.length){toastedTs = Math.max(...fresh.map(n => n.ts)); LS.set('tdnd.toasted', String(toastedTs));}
+}
+async function sendNudge(i){
+  const o = NUDGE_OPTS[i]; const items = [...(S.nudges[S.me]?.items || []), {ts:Date.now(), to:other(S.me), e:o.e, t:o.t}].slice(-40);
+  S.nudges = {...S.nudges, [S.me]:{items}}; render();
+  if (await write(`nudges/${S.me}`, {items})) toast(`Sent to ${NAMES[other(S.me)]}`);
+}
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg){const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3200);}
+
+/* ---------- render ---------- */
+function render(fromSnap){
+  $('#whoName').textContent = S.me ? NAMES[S.me] : 'Who?';
+  document.querySelectorAll('nav.tabs button').forEach(b => {if (b.dataset.tab === S.tab) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');});
+  $('#nudgeDot').hidden = !(S.me && unseen().length && S.tab !== 'together');
+  if (fromSnap && S.tab === 'settings' && S.me) return;   // don't clobber a form being edited
+  if (fromSnap && S.sheet) renderSheet();
+  const v = $('#view');
+  if (!HKEY){v.innerHTML = `<div class="picker"><div><p class="eyebrow">Private app</p><h2>Open your private link</h2><p class="muted" style="margin-top:6px">This tracker is just for Ant and Jules. Open it from the link Ant sent you, then add it to your home screen.</p></div></div>`; return;}
+  if (!S.me){v.innerHTML = viewPicker(); return;}
+  v.innerHTML = ({today:viewToday, calendar:viewCalendar, progress:viewProgress, together:viewTogether, settings:viewSettings}[S.tab])();
+  if (S.tab === 'together') LS.set('tdnd.seen', String(Date.now()));
+}
+function syncNote(){
+  if (S.sync === 'off') return `<div class="banner"><div class="t"><b>Not connected.</b> <span class="small">${HKEY ? 'The shared log can\'t be reached. Check your connection and reopen the app.' : 'Open the app from the private link Ant sent you.'} Anything you log now won't be saved.</span></div></div>`;
+  if (S.sync === 'slow') return `<div class="banner"><div class="t"><b>Can't reach the shared log yet.</b> <span class="small">What you see may be out of date. It will catch up when the connection returns.</span></div></div>`;
+  if (!S.canWrite) return `<div class="banner"><div class="t"><b>Can't save.</b> <span class="small">Reopen the app from your private link. If it keeps happening, tell Ant.</span></div></div>`;
+  return '';
+}
+function viewPicker(){
+  return `<div class="picker">
+    <div><p class="eyebrow">First time on this phone</p><h2>Who's this phone for?</h2><p class="muted" style="margin-top:6px">Pick once. You can switch in Settings.</p></div>
+    <div class="two"><button class="big dry" data-act="pick" data-who="ant">Ant</button><button class="big wet" data-act="pick" data-who="jules">Jules</button></div>
+  </div>`;
+}
+function statusCard(l, w){
+  const mine = w === S.me;
+  if (l.type === 'dry') return `<div class="status dry"><div class="badge"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></div><div class="t"><b>${mine?'Dry today':NAMES[w]+' is dry today'}</b><p class="small muted num">Saved ${money(num(l.amount), l.cur)} · ${r1(num(l.units))} units and ${Math.round(num(l.kcal))} kcal avoided</p></div>${mine?`<button class="btn ghost" data-act="open" data-date="${l.date}">Edit</button>`:''}</div>`;
+  const n = (l.items||[]).reduce((a,i)=>a+num(i.qty),0);
+  return `<div class="status wet"><div class="badge"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l-1.5 8a4.5 4.5 0 0 1-9 0z"/><path d="M12 15.5V21M8 21h8"/></svg></div><div class="t"><b>${n} drink${n===1?'':'s'} today</b><p class="small muted num">${money(num(l.amount), l.cur)} · ${r1(num(l.units))} units · ${Math.round(num(l.kcal))} kcal</p></div>${mine?`<button class="btn ghost" data-act="open" data-date="${l.date}">Edit</button>`:''}</div>`;
+}
+function weekStrip(w){
+  // This week, Monday to Sunday
+  const now = new Date(), tk = dkey(now), mon = addDays(now, -((now.getDay()+6)%7));
+  const out = [];
+  for (let i=0;i<7;i++){
+    const d = addDays(mon, i), k = dkey(d), l = logFor(w, k);
+    const cls = [l ? (l.type==='dry'?'dry':'wet') : '', k===tk ? 'now' : '', k>tk ? 'future' : ''].join(' ');
+    out.push(`<div class="${k===tk?'is-today':''}"><span class="pip ${cls}"></span>${'MTWTFSS'[i]}</div>`);
+  }
+  return `<div class="week">${out.join('')}</div>`;
+}
+function installCard(){
+  if (LS.get('tdnd.installed') === '1' || S.installLater || navigator.standalone || matchMedia('(display-mode: standalone)').matches) return '';
+  return `<section class="card install">
+    <p class="eyebrow">Make it an app</p>
+    <h3>Put this on your home screen</h3>
+    <ol class="steps">
+      <li><span class="n">1</span><span>Make sure you're in <b>Safari</b>. If the link opened somewhere else, copy it and paste it into Safari.</span></li>
+      <li><span class="n">2</span><span>Tap the Share button <svg class="share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Share"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg> at the bottom of the screen. If you can't see it, tap <b>•••</b> first, then <b>Share</b>.</span></li>
+      <li><span class="n">3</span><span>Scroll down and tap <b>Add to Home Screen</b>.</span></li>
+      <li><span class="n">4</span><span>Leave the name as <b>Dry or Not</b> and tap <b>Add</b>. From now on, open it from that icon.</span></li>
+    </ol>
+    <div class="two"><button class="btn dry" data-act="installed">Done it</button><button class="btn" data-act="installlater">Later</button></div>
+  </section>`;
+}
+function viewToday(){
+  const me = S.me, tk = todayKey(), l = logFor(me, tk), p = person(me), t = typical(me), st = streaks(me);
+  const hour = new Date().getHours();
+  const doy = Math.floor((new Date() - new Date(new Date().getFullYear(),0,0)) / 86400000);
+  const yk = dkey(addDays(new Date(),-1));
+  const crav = (S.cravings[me]?.items || []); const cravWeek = crav.filter(c => c.date >= dkey(addDays(new Date(),-6))).length;
+  const un = unseen();
+  return `${syncNote()}
+  ${installCard()}
+  ${!l && hour >= 18 ? `<div class="banner"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg><div class="t"><b>Evening check-in</b><p class="small">How did today go? One tap below.</p></div></div>` : ''}
+  ${un.length ? `<button class="banner" style="border:0;text-align:left;width:100%" data-act="tab" data-tab="together"><span style="font-size:24px">${esc(un[un.length-1].e)}</span><div class="t"><b>${NAMES[other(me)]} sent you ${un.length===1?'a nudge':un.length+' nudges'}</b><p class="small">${esc(un[un.length-1].t)}</p></div></button>` : ''}
+  <section class="card hero">
+    <p class="eyebrow">${new Date().toLocaleDateString('en-GB',{weekday:'long', day:'numeric', month:'long'})}</p>
+    ${l ? statusCard(l, me) : `
+      <div class="q">To <span class="d">dry</span> or <span class="n">not</span> to dry?</div>
+      <div class="two">
+        <button class="big dry" data-act="quickdry" data-date="${tk}">Dry day<small class="num">Saves ${money(t.cost, p.currency)}</small></button>
+        <button class="big wet" data-act="open" data-date="${tk}" data-type="drinks">Had drinks<small>Log what you had</small></button>
+      </div>`}
+    ${!logFor(me, yk) ? `<button class="btn ghost small" data-act="open" data-date="${yk}">Forgot yesterday? Log ${fmtDate(yk)}</button>` : ''}
+  </section>
+  <section class="card">
+    <div class="streak"><div class="big-n num">${st.cur}</div><div><b>day${st.cur===1?'':'s'} dry in a row</b><p class="small muted">Best streak: ${st.best}</p></div></div>
+    ${weekStrip(me)}
+  </section>
+  <section class="card">
+    <div style="display:flex;gap:12px;align-items:center"><div class="t" style="flex:1"><h3>Fancied one?</h3><p class="small muted num">${cravWeek} craving${cravWeek===1?'':'s'} beaten this week, ${crav.length} in total</p></div>
+    <button class="btn dry" data-act="craving">I didn't have it</button></div>
+  </section>
+  <section class="card tip">
+    <p class="eyebrow">Tip of the day</p>
+    <p class="quote">${esc(TIPS[doy % TIPS.length])}</p>
+  </section>`;
+}
+function viewCalendar(){
+  const w = S.calWho || S.me; const m = S.calMonth || (() => {const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1);})();
+  S.calWho = w; S.calMonth = m;
+  const first = new Date(m.getFullYear(), m.getMonth(), 1), days = new Date(m.getFullYear(), m.getMonth()+1, 0).getDate();
+  const off = (first.getDay()+6)%7, tk = todayKey();
+  let cells = ['M','T','W','T','F','S','S'].map(d => `<div class="dow">${d}</div>`).join('');
+  for (let i=0;i<off;i++) cells += `<div class="blank"></div>`;
+  let dry=0, wet=0;
+  for (let d=1; d<=days; d++){
+    const k = dkey(new Date(m.getFullYear(), m.getMonth(), d)); const l = logFor(w,k);
+    if (l?.type==='dry') dry++; else if (l) wet++;
+    const future = k > tk; const cls = [l?(l.type==='dry'?'dry':'wet'):'', k===tk?'today':''].join(' ');
+    cells += `<button class="${cls}" ${future || w!==S.me ? 'disabled' : ''} data-act="open" data-date="${k}" aria-label="${fmtDate(k)}${l?', '+(l.type==='dry'?'dry':'drinks'):''}">${d}</button>`;
+  }
+  const p = person(w); const mk = `${m.getFullYear()}-${pad(m.getMonth()+1)}`;
+  const mt = logsOf(w).filter(l => l.date.startsWith(mk)).reduce((a,l) => {const v = conv(num(l.amount), l.cur||'GBP', p.currency); l.type==='dry' ? a.s += v : a.p += v; return a;}, {s:0,p:0});
+  return `${syncNote()}
+  <div class="seg" role="group" aria-label="Whose calendar">
+    <button aria-pressed="${w===S.me}" data-act="calwho" data-who="${S.me}">${NAMES[S.me]}</button>
+    <button aria-pressed="${w!==S.me}" data-act="calwho" data-who="${other(S.me)}">${NAMES[other(S.me)]}</button>
+  </div>
+  <section class="card">
+    <div class="cal-head"><button class="btn ghost" data-act="month" data-d="-1" aria-label="Previous month">‹</button><h3>${m.toLocaleDateString('en-GB',{month:'long', year:'numeric'})}</h3><button class="btn ghost" data-act="month" data-d="1" aria-label="Next month">›</button></div>
+    <div class="cal">${cells}</div>
+    <div class="legend"><span><i style="background:var(--dry)"></i>Dry</span><span><i style="background:var(--wet)"></i>Drinks</span><span><i style="border:1px solid var(--line)"></i>Not logged</span></div>
+    ${w===S.me ? `<p class="note">Tap any past day to log or change it.</p>` : ''}
+  </section>
+  <div class="tiles">
+    <div class="tile g"><span class="eyebrow">Dry days</span><span class="v">${dry}</span><span class="small muted num">saved ${money(mt.s, p.currency)}</span></div>
+    <div class="tile r"><span class="eyebrow">Drink days</span><span class="v">${wet}</span><span class="small muted num">spent ${money(mt.p, p.currency)}</span></div>
+  </div>`;
+}
+function viewProgress(){
+  const sel = S.progWho; const ws = sel==='both' ? ['ant','jules'] : [sel==='me' ? S.me : other(S.me)];
+  const cur = sel==='both' ? goal().currency : person(ws[0]).currency;
+  const t = totals(ws, cur); const lim = UK_WEEKLY_UNITS * ws.length; const pct = Math.min(100, t.units7/lim*100);
+  const gl = goal(); const pooled = totals(['ant','jules'], gl.currency).saved; const gp = gl.amount>0 ? Math.min(100, pooled/gl.amount*100) : 0;
+  const bs = badgesFor(ws);
+  return `${syncNote()}
+  <div class="seg" role="group" aria-label="Whose progress">
+    <button aria-pressed="${sel==='me'}" data-act="prog" data-v="me">${NAMES[S.me]}</button>
+    <button aria-pressed="${sel==='other'}" data-act="prog" data-v="other">${NAMES[other(S.me)]}</button>
+    <button aria-pressed="${sel==='both'}" data-act="prog" data-v="both">Both</button>
+  </div>
+  <section class="card">
+    <p class="eyebrow">Joint savings goal</p>
+    <h2>${esc(gl.name)}</h2>
+    <div class="bar gold" role="img" aria-label="${Math.round(gp)} percent"><i style="width:${gp}%"></i></div>
+    <p class="num"><b>${money(pooled, gl.currency)}</b> <span class="muted">of ${money(gl.amount, gl.currency)} · ${pooled>=gl.amount ? 'Book it!' : money(gl.amount-pooled, gl.currency)+' to go'}</span></p>
+    <p class="note">Every dry day from both of you adds your typical day's cost. Change the goal in Settings.</p>
+  </section>
+  <div class="tiles">
+    <div class="tile g"><span class="eyebrow">Saved</span><span class="v">${money(t.saved, cur)}</span><span class="small muted num">${t.dry} dry day${t.dry===1?'':'s'}</span></div>
+    <div class="tile r"><span class="eyebrow">Spent</span><span class="v">${money(t.spent, cur)}</span><span class="small muted num">${t.wet} drink day${t.wet===1?'':'s'}</span></div>
+    <div class="tile m"><span class="eyebrow">Kcal avoided</span><span class="v">${Math.round(t.kcalAvoided).toLocaleString('en-GB')}</span><span class="small muted num">${Math.round(t.kcalIn).toLocaleString('en-GB')} drunk</span></div>
+    <div class="tile"><span class="eyebrow">Cravings beaten</span><span class="v">${t.cravings}</span><span class="small muted">fancied one, didn't</span></div>
+  </div>
+  <section class="card">
+    <p class="eyebrow">UK units, last 7 days</p>
+    <p class="num"><b style="font-family:var(--font-display);font-size:26px">${r1(t.units7)}</b> <span class="muted">of ${lim} guideline</span></p>
+    <div class="bar ${t.units7>lim?'over':''}"><i style="width:${pct}%"></i></div>
+    <p class="note">UK low-risk guideline: no more than 14 units a week${ws.length>1?' each':''}, spread over three or more days.</p>
+  </section>
+  <section class="card">
+    <p class="eyebrow">Badges · ${bs.filter(b=>b.on).length} of ${bs.length}</p>
+    <div class="badges">${bs.map(b => `<div class="bdg ${b.on?'on':''}"><div class="medal">${esc(b.k)}</div>${esc(b.label)}</div>`).join('')}</div>
+  </section>`;
+}
+function viewTogether(){
+  const o = other(S.me), ol = logFor(o, todayKey()), st = streaks(o);
+  const seen = Number(LS.get('tdnd.seen') || 0);
+  const feed = ['ant','jules'].flatMap(w => (S.nudges[w]?.items || []).map(n => ({...n, from:w}))).sort((a,b) => b.ts-a.ts).slice(0,20);
+  const cr = ['ant','jules'].flatMap(w => (S.cravings[w]?.items || []).map(c => ({...c, who:w}))).sort((a,b) => b.ts-a.ts).slice(0,10);
+  return `${syncNote()}
+  <section class="card">
+    <p class="eyebrow">${NAMES[o]} today</p>
+    ${ol ? statusCard(ol, o) : `<p><b>${NAMES[o]} hasn't checked in yet today.</b></p><p class="small muted">Their "today" follows their own clock.</p>`}
+    <p class="small muted num">Current streak ${st.cur} · best ${st.best}</p>
+    ${weekStrip(o)}
+  </section>
+  <section class="card">
+    <h3>Send ${NAMES[o]} a nudge</h3>
+    <div class="nudges">${NUDGE_OPTS.map((n,i) => `<button class="nudge" data-act="nudge" data-i="${i}"><span>${n.e}</span><span>${esc(n.t)}</span></button>`).join('')}</div>
+  </section>
+  <section class="card">
+    <h3>Nudges</h3>
+    ${feed.length ? `<div class="list">${feed.map(n => `<div class="item"><div class="emo">${esc(n.e)}</div><div class="t"><b>${n.from===S.me ? 'You → '+NAMES[o] : NAMES[n.from]+' → you'}</b>${n.from!==S.me && n.ts>seen ? '<span class="new">New</span>' : ''}<p class="small">${esc(n.t)}</p><p class="small muted">${ago(n.ts)}</p></div></div>`).join('')}</div>` : `<p class="empty">No nudges yet. Send the first one above.</p>`}
+  </section>
+  <section class="card">
+    <h3>Cravings beaten</h3>
+    ${cr.length ? `<div class="list">${cr.map(c => `<div class="item"><div class="emo">✋</div><div class="t"><b>${NAMES[c.who]}</b> fancied one and didn't<p class="small">${c.note ? esc(c.note) : '<span class="muted">No note</span>'}</p><p class="small muted">${ago(c.ts)}</p></div></div>`).join('')}</div>` : `<p class="empty">None logged yet. Use "I didn't have it" on the Today tab.</p>`}
+  </section>`;
+}
+function inUseCurs(d){
+  const s = new Set([d.currency, d.goal.currency, person(other(S.me)).currency]);
+  s.delete('GBP'); return [...s];
+}
+function curResults(q){
+  q = (q || '').trim().toLowerCase();
+  const list = !q ? COMMON : ALL_CURS.filter(c => c.toLowerCase().includes(q) || curName(c).toLowerCase().includes(q));
+  return list.slice(0, 8).map(c => `<button data-act="curpick" data-c="${c}"><span>${esc(curName(c))}</span><b>${c}</b></button>`).join('') || `<p class="empty">No match. Try the 3-letter code, like USD.</p>`;
+}
+function viewSettings(){
+  if (!S.draft){const p = person(S.me); S.draft = {currency:p.currency, drinks:JSON.parse(JSON.stringify(p.drinks)), goal:{...goal()}, rates:{...rates()}, curOpen:false};}
+  const d = S.draft, cur = d.currency;
+  const t = d.drinks.reduce((a,x) => {const q = num(x.qty); a.cost += q*num(x.price?.[cur]); a.units += q*unitsOf(x); a.kcal += q*num(x.kcal); a.count += q; return a;}, {cost:0, units:0, kcal:0, count:0});
+  const needRate = !num(d.rates[cur]) && cur !== 'GBP';
+  const goalOpts = [...new Set(['GBP', cur, d.goal.currency, ...COMMON])];
+  return `${syncNote()}
+  <section class="card">
+    <p class="eyebrow">This phone</p>
+    <div class="seg" role="group" aria-label="Who is using this phone">
+      <button aria-pressed="${S.me==='ant'}" data-act="pick" data-who="ant">Ant</button>
+      <button aria-pressed="${S.me==='jules'}" data-act="pick" data-who="jules">Jules</button>
+    </div>
+  </section>
+  <section class="card">
+    <p class="eyebrow">${NAMES[S.me]}'s currency</p>
+    <div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><b>${esc(curName(cur))}</b> <span class="muted">${cur}</span></div><button class="btn" data-act="curopen">${d.curOpen ? 'Cancel' : 'Change'}</button></div>
+    ${d.curOpen ? `<label class="f" for="s-cursearch">Search by code, currency or country
+      <input id="s-cursearch" data-act-input="cursearch" autocomplete="off" autocapitalize="characters" placeholder="e.g. USD, euro, dollar"></label>
+      <div class="cur-results" id="curResults">${curResults('')}</div>` : ''}
+    ${needRate ? `<label class="f" for="r-${cur}">How many ${cur} to £1? (needed to add up savings)
+      <input id="r-${cur}" class="need" type="number" inputmode="decimal" data-r="${cur}" placeholder="Check today's rate"></label>` : ''}
+    <p class="note">Switch when you change country. Prices below are in ${cur}.</p>
+  </section>
+  <section class="card">
+    <p class="eyebrow">${NAMES[S.me]}'s typical day</p>
+    <p class="small muted">The drinks you'd normally have. A dry day saves this much.</p>
+    <p class="sum"><span>${r1(t.count)} drinks · ${r1(t.units)} units · ${Math.round(t.kcal)} kcal</span><span style="color:var(--gold)">${money(t.cost, cur)}</span></p>
+    ${d.drinks.map((x,i) => `<div class="drink-row">
+      <div class="hd"><input id="dn-${i}" data-i="${i}" data-k="name" value="${esc(x.name)}" aria-label="Drink name">
+        <div class="stepper"><button data-act="dq" data-i="${i}" data-d="-1" aria-label="Fewer">−</button><output class="num">${num(x.qty)}</output><button data-act="dq" data-i="${i}" data-d="1" aria-label="More">+</button></div></div>
+      <div class="grid2">
+        <label class="f" for="dp-${i}">Price each (${cur})<input id="dp-${i}" type="number" inputmode="decimal" data-i="${i}" data-k="price" data-c="${cur}" value="${x.price?.[cur] != null ? num(x.price[cur]) : ''}" placeholder="${needRate ? 'Set rate first' : 'Local price'}"></label>
+        <label class="f" for="dk-${i}">kcal<input id="dk-${i}" type="number" inputmode="decimal" data-i="${i}" data-k="kcal" value="${num(x.kcal)}"></label>
+      </div>
+      <div class="grid2">
+        <label class="f" for="dm-${i}">ml<input id="dm-${i}" type="number" inputmode="decimal" data-i="${i}" data-k="ml" value="${num(x.ml)}"></label>
+        <label class="f" for="da-${i}">ABV %<input id="da-${i}" type="number" inputmode="decimal" data-i="${i}" data-k="abv" value="${num(x.abv)}"></label>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="small muted num">${r1(unitsOf(x))} units each</span><button class="btn danger small" data-act="ddel" data-i="${i}">Remove</button></div>
+    </div>`).join('')}
+    <label class="f" for="s-add">Add a drink
+      <select id="s-add" data-act-change="dadd"><option value="">Choose…</option>${PRESETS.map((p,i) => `<option value="${i}">${esc(p.name)}</option>`).join('')}<option value="custom">Something else</option></select></label>
+    <p class="note">Units = ml × ABV ÷ 1000. In a new currency, prices start as a conversion from pounds. Change them to what you actually pay.</p>
+  </section>
+  <section class="card">
+    <p class="eyebrow">Joint savings goal (shared)</p>
+    <label class="f" for="g-name">What are you saving for?<input id="g-name" data-g="name" value="${esc(d.goal.name)}"></label>
+    <div class="grid2">
+      <label class="f" for="g-amt">Target<input id="g-amt" type="number" inputmode="decimal" data-g="amount" value="${num(d.goal.amount)}"></label>
+      <label class="f" for="g-cur">Currency<select id="g-cur" data-g="currency">${goalOpts.map(c => `<option value="${c}" ${d.goal.currency===c?'selected':''}>${c}</option>`).join('')}</select></label>
+    </div>
+  </section>
+  <section class="card">
+    <p class="eyebrow">Exchange rates (shared)</p>
+    <p class="small muted">Used to add up money from different countries. Amount per £1.</p>
+    <div class="grid2">${inUseCurs(d).map(c => `<label class="f" for="rr-${c}">${c} per £1<input id="rr-${c}" type="number" inputmode="decimal" data-r="${c}" value="${num(d.rates[c]) || ''}" class="${num(d.rates[c]) ? '' : 'need'}"></label>`).join('') || '<p class="small muted">Everything is in pounds, so no rates needed.</p>'}</div>
+  </section>
+  <button class="btn primary full" data-act="save">Save settings</button>
+  <section class="card">
+    <p class="eyebrow">Home screen and reminders</p>
+    <p class="small">After 6pm the Today tab shows a check-in prompt until you've logged. For a buzz on your phone, set a daily iPhone reminder that says "Dry or not?".</p>
+    <p class="small muted">Your private link is your key to the app. Don't share it with anyone else.</p>
+    <button class="btn" data-act="showinstall">Show the home screen steps again</button>
+  </section>`;
+}
+
+/* ---------- log sheet ---------- */
+function openSheet(date, type){
+  const l = logFor(S.me, date); const p = person(S.me);
+  const items = p.drinks.map(d => ({...JSON.parse(JSON.stringify(d)), qty:0}));
+  if (l?.type === 'drinks') for (const li of l.items || []){
+    const m = items.find(i => i.name === li.name); if (m) m.qty = num(li.qty);
+    else items.push({id:newId(), name:li.name, ml:li.ml, abv:li.abv, kcal:li.kcal, price:{[l.cur]:li.price}, qty:num(li.qty)});
+  }
+  S.sheet = {date, type: type || l?.type || 'drinks', items, existed: !!l}; S.confirmDel = false;
+  $('#sheet').hidden = false; renderSheet();
+}
+function closeSheet(){S.sheet = null; $('#sheet').hidden = true;}
+function sheetTotals(){const cur = person(S.me).currency; return S.sheet.items.reduce((t,i) => {const q = num(i.qty); t.n += q; t.cost += q*num(i.price?.[cur]); t.units += q*unitsOf(i); t.kcal += q*num(i.kcal); return t;}, {n:0,cost:0,units:0,kcal:0});}
+function renderSheet(){
+  const sh = S.sheet; if (!sh) return; const cur = person(S.me).currency; const ty = typical(S.me);
+  const tt = sheetTotals();
+  $('#sheetPanel').innerHTML = `<div class="grab"></div><div class="gut">
+    <div class="sheet-head"><div><p class="eyebrow">${sh.date===todayKey()?'Today':fmtDate(sh.date)}</p><h2>${sh.type==='dry'?'Dry day':'What did you have?'}</h2></div><button class="btn ghost" data-act="close">Close</button></div>
+    <div class="seg" role="group" aria-label="Day type"><button aria-pressed="${sh.type==='dry'}" data-act="stype" data-v="dry">Dry</button><button aria-pressed="${sh.type==='drinks'}" data-act="stype" data-v="drinks">Drinks</button></div>
+    ${sh.type==='dry' ? `<div class="status dry"><div class="t"><b class="num">You save ${money(ty.cost, cur)}</b><p class="small muted num">${r1(ty.units)} units and ${Math.round(ty.kcal)} kcal avoided, based on your typical day</p></div></div>
+      <button class="btn dry full" data-act="savelog">Save dry day</button>` : `
+      <div class="card" style="padding:4px 14px">${sh.items.map((i,k) => `<div class="line"><div class="t"><b>${esc(i.name)}</b><p class="small muted num">${money(num(i.price?.[cur]), cur)} · ${r1(unitsOf(i))} u · ${Math.round(num(i.kcal))} kcal</p></div>
+        <div class="stepper"><button data-act="sq" data-i="${k}" data-d="-1" aria-label="One fewer ${esc(i.name)}">−</button><output class="num">${num(i.qty)}</output><button data-act="sq" data-i="${k}" data-d="1" aria-label="One more ${esc(i.name)}">+</button></div></div>`).join('')}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="styp">Same as my typical day</button>
+      <select id="sh-add" data-act-change="sadd" aria-label="Add another drink" style="flex:1;min-width:150px"><option value="">+ Another drink…</option>${PRESETS.map((p,i) => `<option value="${i}">${esc(p.name)}</option>`).join('')}</select></div>
+      <p class="sum"><span>${tt.n} drink${tt.n===1?'':'s'} · ${r1(tt.units)} units · ${Math.round(tt.kcal)} kcal</span><span style="color:var(--wet)">${money(tt.cost, cur)}</span></p>
+      <button class="btn wet full" data-act="savelog">Save drinks</button>`}
+    ${sh.existed ? (S.confirmDel ? `<div class="two"><button class="btn danger" data-act="dellog">Yes, delete entry</button><button class="btn" data-act="nodel">Keep it</button></div>` : `<button class="btn ghost" data-act="askdel">Delete this day's entry</button>`) : ''}
+  </div>`;
+}
+async function saveLog(){
+  const sh = S.sheet, cur = person(S.me).currency; let e;
+  if (sh.type === 'dry'){const t = typical(S.me); e = {who:S.me, date:sh.date, type:'dry', items:[], cur, amount:t.cost, units:r1(t.units), kcal:Math.round(t.kcal), ts:Date.now()};}
+  else {
+    const items = sh.items.filter(i => num(i.qty) > 0).map(i => ({name:i.name, qty:num(i.qty), ml:num(i.ml), abv:num(i.abv), kcal:num(i.kcal), price:num(i.price?.[cur])}));
+    if (!items.length){toast('Add at least one drink, or switch to Dry.'); return;}
+    const t = sheetTotals(); e = {who:S.me, date:sh.date, type:'drinks', items, cur, amount:t.cost, units:r1(t.units), kcal:Math.round(t.kcal), ts:Date.now()};
+  }
+  const id = `${S.me}_${sh.date}`; S.logs = {...S.logs, [id]:e}; closeSheet(); render();
+  if (await write(`logs/${id}`, e)) toast(e.type==='dry' ? `Dry day logged. ${money(e.amount, cur)} saved.` : 'Logged. Tomorrow is a new day.');
+}
+async function quickDry(date){
+  const cur = person(S.me).currency, t = typical(S.me);
+  const e = {who:S.me, date, type:'dry', items:[], cur, amount:t.cost, units:r1(t.units), kcal:Math.round(t.kcal), ts:Date.now()};
+  const id = `${S.me}_${date}`; S.logs = {...S.logs, [id]:e}; render();
+  if (await write(`logs/${id}`, e)) toast(`Dry day logged. ${money(e.amount, cur)} saved.`);
+}
+
+/* craving sheet */
+function openCraving(){
+  S.sheet = null; $('#sheet').hidden = false;
+  $('#sheetPanel').innerHTML = `<div class="grab"></div><div class="gut">
+    <div class="sheet-head"><h2>Fancied one, didn't have it</h2><button class="btn ghost" data-act="close">Close</button></div>
+    <label class="f" for="cr-note">What was the moment? (optional)<input id="cr-note" maxlength="140" placeholder="Sunset at the beach bar"></label>
+    <button class="btn dry full" data-act="savecrav">Log the win</button></div>`;
+}
+async function saveCraving(){
+  const note = ($('#cr-note')?.value || '').trim().slice(0,140);
+  const items = [...(S.cravings[S.me]?.items || []), {ts:Date.now(), date:todayKey(), note}].slice(-300);
+  S.cravings = {...S.cravings, [S.me]:{items}}; closeSheet(); render();
+  if (await write(`cravings/${S.me}`, {items})) toast('Craving beaten. Nice one.');
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async ev => {
+  const b = ev.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT') return;
+  const a = b.dataset.act;
+  if (a === 'tab'){if (!S.me) return; S.tab = b.dataset.tab; if (S.tab !== 'settings') S.draft = null; render(); window.scrollTo(0,0);}
+  else if (a === 'pick'){S.me = b.dataset.who; LS.set('tdnd.me', S.me); S.draft = null; S.calWho = null; render();}
+  else if (a === 'quickdry') quickDry(b.dataset.date);
+  else if (a === 'open') openSheet(b.dataset.date, b.dataset.type);
+  else if (a === 'close') closeSheet();
+  else if (a === 'stype'){S.sheet.type = b.dataset.v; renderSheet();}
+  else if (a === 'sq'){const i = S.sheet.items[+b.dataset.i]; i.qty = Math.max(0, num(i.qty) + Number(b.dataset.d)); renderSheet();}
+  else if (a === 'styp'){const p = person(S.me); S.sheet.items.forEach(i => {const m = p.drinks.find(d => d.id === i.id); i.qty = m ? num(m.qty) : 0;}); renderSheet();}
+  else if (a === 'savelog') saveLog();
+  else if (a === 'askdel'){S.confirmDel = true; renderSheet();}
+  else if (a === 'nodel'){S.confirmDel = false; renderSheet();}
+  else if (a === 'dellog'){const id = `${S.me}_${S.sheet.date}`; const c = {...S.logs}; delete c[id]; S.logs = c; closeSheet(); render(); await remove(`logs/${id}`); toast('Entry deleted.');}
+  else if (a === 'craving') openCraving();
+  else if (a === 'savecrav') saveCraving();
+  else if (a === 'nudge') sendNudge(+b.dataset.i);
+  else if (a === 'calwho'){S.calWho = b.dataset.who; render();}
+  else if (a === 'month'){const m = S.calMonth; S.calMonth = new Date(m.getFullYear(), m.getMonth() + Number(b.dataset.d), 1); render();}
+  else if (a === 'prog'){S.progWho = b.dataset.v; render();}
+  else if (a === 'dq'){const x = S.draft.drinks[+b.dataset.i]; x.qty = Math.max(0, num(x.qty) + Number(b.dataset.d)); render();}
+  else if (a === 'ddel'){S.draft.drinks.splice(+b.dataset.i, 1); render();}
+  else if (a === 'save') saveSettings();
+  else if (a === 'installed'){LS.set('tdnd.installed','1'); render(); toast('Nice. Open it from the home screen from now on.');}
+  else if (a === 'installlater'){S.installLater = true; render();}
+  else if (a === 'showinstall'){LS.set('tdnd.installed','0'); S.installLater = false; S.tab = 'today'; S.draft = null; render(); window.scrollTo(0,0);}
+  else if (a === 'curopen'){S.draft.curOpen = !S.draft.curOpen; render(); if (S.draft.curOpen) $('#s-cursearch')?.focus();}
+  else if (a === 'curpick'){S.draft.currency = b.dataset.c; S.draft.curOpen = false; fillPrices(S.draft); render();}
+});
+// Give drinks a starting price in a new currency, converted from pounds (or any currency with a known rate)
+function fillPrices(d){
+  const cur = d.currency, rate = cur === 'GBP' ? 1 : num(d.rates[cur]); if (!rate) return;
+  for (const x of d.drinks){
+    x.price = x.price || {};
+    if (x.price[cur] != null && num(x.price[cur]) > 0) continue;
+    let gbp = num(x.price.GBP);
+    if (!gbp) for (const [k,v] of Object.entries(x.price)){const r = k === 'GBP' ? 1 : num(d.rates[k]); if (r && num(v)){gbp = num(v) / r; break;}}
+    if (!gbp) continue;
+    const v = gbp * rate;
+    x.price[cur] = rate >= 20 ? Math.round(v/10)*10 : Math.round(v*2)/2;
+  }
+}
+document.addEventListener('change', ev => {
+  const el = ev.target;
+  if (el.dataset.actChange === 'dadd' && el.value !== ''){
+    const p = el.value === 'custom' ? {name:'My drink', ml:0, abv:0, kcal:0, price:{}} : PRESETS[+el.value];
+    S.draft.drinks.push(fromPreset(p, 1)); render(); return;
+  }
+  if (el.dataset.actChange === 'sadd' && el.value !== ''){
+    const p = PRESETS[+el.value]; const ex = S.sheet.items.find(i => i.name === p.name);
+    if (ex) ex.qty = num(ex.qty) + 1; else S.sheet.items.push(fromPreset(p, 1));
+    renderSheet(); return;
+  }
+  if (S.tab === 'settings' && S.draft && el.dataset.r && el.dataset.r === S.draft.currency && num(el.value)){fillPrices(S.draft); render();}
+});
+document.addEventListener('input', ev => {
+  const el = ev.target, d = S.draft; if (!d) return;
+  if (el.dataset.actInput === 'cursearch'){const r = $('#curResults'); if (r) r.innerHTML = curResults(el.value); return;}
+  if (el.dataset.k){const x = d.drinks[+el.dataset.i]; if (!x) return; if (el.dataset.k === 'name') x.name = el.value.slice(0,40); else if (el.dataset.k === 'price'){x.price = x.price || {}; x.price[el.dataset.c] = num(el.value);} else x[el.dataset.k] = num(el.value);}
+  else if (el.dataset.g){d.goal[el.dataset.g] = el.dataset.g === 'amount' ? num(el.value) : el.value;}
+  else if (el.dataset.r){d.rates[el.dataset.r] = num(el.value);}
+});
+$('#sheet').addEventListener('click', ev => {if (ev.target.id === 'sheet') closeSheet();});
+async function saveSettings(){
+  const d = S.draft;
+  const missing = inUseCurs(d).find(c => !num(d.rates[c]));
+  if (missing){toast(`Enter how many ${missing} make £1 first.`); const f = document.querySelector(`[data-r="${missing}"]`); f?.focus(); return;}
+  fillPrices(d);
+  const drinks = d.drinks.filter(x => x.name.trim()).map(x => ({id:x.id, name:x.name.trim(), ml:num(x.ml), abv:num(x.abv), kcal:num(x.kcal), qty:num(x.qty), price:x.price || {}}));
+  const pd = {currency:d.currency, drinks}; S.people = {...S.people, [S.me]:pd};
+  const rt = {GBP:1}; for (const [k,v] of Object.entries(d.rates)) if (num(v) > 0 && k !== 'GBP') rt[k] = num(v);
+  const cfg = {goal:{name:(d.goal.name||'Savings goal').slice(0,60), amount:num(d.goal.amount), currency:d.goal.currency}, rates:rt};
+  const cfgChanged = JSON.stringify(cfg) !== JSON.stringify({goal:goal(), rates:{...rates(), GBP:1}});
+  const ok1 = await write(`people/${S.me}`, pd);
+  const ok2 = cfgChanged ? await write('config/shared', cfg) : true;
+  if (cfgChanged) S.config = cfg;
+  S.draft = null; render();
+  if (ok1 && ok2) toast('Settings saved');
+}
+
+boot();
+</script>
+</body>
+</html>
