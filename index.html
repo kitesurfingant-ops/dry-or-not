@@ -116,6 +116,13 @@ p{margin:0}
 .goal.won{border-color:var(--dry)}
 .check{display:flex;gap:10px;align-items:center;font-size:14px}
 .check input{width:22px;height:22px;accent-color:var(--dry)}
+.wc{display:grid;grid-template-columns:minmax(64px,auto) repeat(7,1fr) 34px;gap:6px 5px;align-items:center}
+.wc-d{text-align:center;font-size:12px;font-weight:700;color:var(--muted)}
+.wc-d.now{color:var(--ink)}
+.wc-n{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.wc-c{display:flex;justify-content:center;background:none;border:0;padding:0;font:inherit;cursor:pointer}
+button.wc-c .pip:not(.dry):not(.wet){border-color:var(--muted)}
+.wc-t{text-align:center;font-family:var(--font-display);font-size:20px;color:var(--dry)}
 .need{border-color:var(--wet)!important;background:var(--wet-soft)!important}
 .banner{background:var(--gold-soft);border-radius:16px;padding:14px;display:flex;gap:12px;align-items:center}
 .banner .t{flex:1;min-width:0}
@@ -767,17 +774,42 @@ function viewProgress(){
     <div class="badges">${bs.map(b => `<div class="bdg ${b.on?'on':''}"><div class="medal">${esc(b.k)}</div>${esc(b.label)}</div>`).join('')}</div>
   </section>`;
 }
+// Both weeks side by side, Monday to Sunday, you first
+function weekCompare(){
+  const now = new Date(), tk = dkey(now), mon = addDays(now, -((now.getDay()+6)%7));
+  const days = [...Array(7)].map((_,i) => dkey(addDays(mon, i)));
+  const head = `<span></span>${days.map((k,i) => `<span class="wc-d ${k===tk?'now':''}">${'MTWTFSS'[i]}</span>`).join('')}<span class="wc-d">Dry</span>`;
+  const row = w => {
+    const st = streaks(w); let dry = 0, logged = 0;
+    const cells = days.map(k => {
+      const l = logFor(w, k); if (l){logged++; if (l.type === 'dry') dry++;}
+      const cls = [l ? (l.type==='dry'?'dry':'wet') : '', k===tk ? 'now' : '', k>tk ? 'future' : ''].join(' ');
+      const label = `${NAMES[w]}, ${fmtDate(k)}${l ? ', ' + (l.type==='dry' ? 'dry' : 'drinks') : ', not logged'}`;
+      return w === S.me && k <= tk
+        ? `<button class="wc-c" data-act="open" data-date="${k}" aria-label="${label}"><span class="pip ${cls}"></span></button>`
+        : `<span class="wc-c" role="img" aria-label="${label}"><span class="pip ${cls}"></span></span>`;
+    }).join('');
+    return `<span class="wc-n"><b>${NAMES[w]}</b><span class="small muted num">${st.cur ? `🔥 ${st.cur}` : 'streak 0'}</span></span>${cells}<span class="wc-t num"><b>${dry}</b></span>`;
+  };
+  const a = logFor(S.me, tk), b = logFor(other(S.me), tk);
+  const both = a?.type === 'dry' && b?.type === 'dry';
+  return `<section class="card">
+    <p class="eyebrow">This week, together</p>
+    <div class="wc">${head}${row(S.me)}${row(other(S.me))}</div>
+    <div class="legend"><span><i style="background:var(--dry)"></i>Dry</span><span><i style="background:var(--wet)"></i>Drinks</span><span><i style="border:1px solid var(--line)"></i>Not logged</span></div>
+    ${both ? `<p class="small" style="color:var(--dry);font-weight:700">You're both dry today. Nice teamwork.</p>` : ''}
+  </section>`;
+}
 function viewTogether(){
   const o = other(S.me), ol = logFor(o, todayKey()), st = streaks(o);
   const seen = Number(LS.get('tdnd.seen') || 0);
   const feed = ['ant','jules'].flatMap(w => (S.nudges[w]?.items || []).map(n => ({...n, from:w}))).sort((a,b) => b.ts-a.ts).slice(0,20);
   const cr = ['ant','jules'].flatMap(w => (S.cravings[w]?.items || []).map(c => ({...c, who:w}))).sort((a,b) => b.ts-a.ts).slice(0,10);
   return `${syncNote()}
+  ${weekCompare()}
   <section class="card">
     <p class="eyebrow">${NAMES[o]} today</p>
     ${ol ? statusCard(ol, o) : `<p><b>${NAMES[o]} hasn't checked in yet today.</b></p><p class="small muted">Their "today" follows their own clock.</p>`}
-    <p class="small muted num">Current streak ${st.cur} · best ${st.best}</p>
-    ${weekStrip(o)}
   </section>
   <section class="card">
     <h3>Send ${NAMES[o]} a nudge</h3>
