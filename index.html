@@ -198,8 +198,6 @@ input[type=text],input[type=number],input:not([type]),select{width:100%;border:1
 
 <div id="sheet" hidden><div class="panel" id="sheetPanel"></div></div>
 <div id="toast" hidden role="status"></div>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
 
 <script>
@@ -371,8 +369,7 @@ async function write(path, data){
   try {await S.db.doc(path).set(data); return true;}
   catch(e){
     if (e?.code === 'unavailable'){await new Promise(r => setTimeout(r, 600 + Math.random()*800)); try {await S.db.doc(path).set(data); return true;} catch(e2){e = e2;}}
-    if (e?.code === 'permission-denied'){S.canWrite = false; toast('Saving was refused. Open the app from your private link again.');}
-    else if (e?.code === 'resource-exhausted') toast('The free database limit was reached for today. Try again tomorrow.');
+    if (e?.code === 'permission-denied'){toast('Saving was refused. Open the app from your private link again.');}
     else toast('Could not save. Check your connection and try again.');
     return false;
   }
@@ -382,15 +379,9 @@ async function remove(path){if (!S.db) return; try {await S.db.doc(path).delete(
 async function boot(){
   render();
   if (!HKEY){setSync('off'); render(); return;}
-  let db = null;
-  try {
-    if (!window.firebase || !window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.projectId) throw new Error('no config');
-    if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
-    const fs = firebase.firestore();
-    try {await fs.enablePersistence({synchronizeTabs:true});} catch(e){}   // works offline, syncs when back online
-    const base = 'households/' + HKEY + '/';
-    db = {doc: p => fs.doc(base + p), collection: p => fs.collection(base + p)};
-  } catch(e){setSync('off'); render(); return;}
+  const C = window.DRY_CONFIG || {};
+  if (!C.url || !C.key){setSync('off'); render(); return;}
+  const db = makeStore(C.url, C.key, HKEY);
   S.db = db;
   const need = ['people','config','logs','cravings','nudges'];
   const timer = setTimeout(() => {if (S.loaded.size < need.length){setSync('slow'); render(true);}}, 10000);
@@ -406,6 +397,64 @@ async function boot(){
   coll('cravings','cravings','cravings');
   coll('nudges','nudges','nudges');
   db.doc('config/shared').onSnapshot(snap => {S.config = snap.exists ? snap.data() : null; done('config', snap);}, fail);
+}
+
+/* ---------- Supabase store ----------
+   A tiny document store with the same shape the screens already use:
+   db.collection('logs').onSnapshot(fn), db.doc('config/shared').onSnapshot(fn), .set(), .delete().
+   It polls every 15 s while the app is open (and straight away when you come back to it),
+   and keeps a copy on the phone so the app opens instantly, even offline. */
+function makeStore(url, key, hk){
+  const CK = 'tdnd.cache.' + hk.slice(0,6);
+  let cache = {}; try {cache = JSON.parse(LS.get(CK) || '{}') || {};} catch(e){cache = {};}
+  let live = false, lastJson = null, timer = null;
+  const subs = [];
+  async function rpc(fn, body){
+    const r = await fetch(`${url}/rest/v1/rpc/${fn}`, {method:'POST', headers:{apikey:key, 'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if (!r.ok){const e = new Error('HTTP ' + r.status); e.code = r.status >= 500 || r.status === 429 ? 'unavailable' : 'permission-denied'; throw e;}
+    return r.status === 204 ? null : r.json().catch(() => null);
+  }
+  function deliver(sub, fromCache){
+    const metadata = {fromCache, hasPendingWrites:false};
+    if (sub.kind === 'coll'){
+      const pre = sub.name + '/';
+      const docs = Object.keys(cache).filter(p => p.startsWith(pre)).map(p => ({id:p.slice(pre.length), exists:true, data:() => cache[p], metadata}));
+      sub.next({docs, size:docs.length, empty:!docs.length, metadata});
+    } else {
+      const d = cache[sub.name];
+      sub.next({id:sub.name.split('/').pop(), exists:d !== undefined, data:() => d, metadata});
+    }
+  }
+  const emit = fromCache => subs.forEach(sub => deliver(sub, fromCache));
+  async function poll(){
+    clearTimeout(timer);
+    try {
+      const rows = await rpc('dry_list', {p_key:hk}) || [];
+      const next = {}; rows.forEach(r => next[r.path] = r.data);
+      const j = JSON.stringify(next);
+      const wasLive = live; live = true; cache = next;
+      if (j !== lastJson || !wasLive){lastJson = j; LS.set(CK, j); emit(false);}
+      if (S.sync === 'slow' && S.loaded.size >= 5){setSync('ok'); render(true);}
+    } catch(e){
+      live = false;
+      if (S.sync === 'ok'){setSync('slow'); render(true);}
+    }
+    if (!document.hidden) timer = setTimeout(poll, 15000);
+  }
+  document.addEventListener('visibilitychange', () => {if (!document.hidden) poll(); else clearTimeout(timer);});
+  window.addEventListener('online', poll);
+  setTimeout(() => {emit(true); poll();}, 0);    // phone copy first, then the real thing
+  function onSnap(kind, name){
+    return (next, err) => {const sub = {kind, name, next, err}; subs.push(sub); return () => subs.splice(subs.indexOf(sub), 1);};
+  }
+  return {
+    collection: name => ({onSnapshot: onSnap('coll', name)}),
+    doc: path => ({
+      onSnapshot: onSnap('doc', path),
+      async set(data){await rpc('dry_put', {p_key:hk, p_path:path, p_data:data}); cache[path] = data; lastJson = JSON.stringify(cache); LS.set(CK, lastJson);},
+      async delete(){await rpc('dry_del', {p_key:hk, p_path:path}); delete cache[path]; lastJson = JSON.stringify(cache); LS.set(CK, lastJson);},
+    }),
+  };
 }
 
 /* ---------- nudges ---------- */
