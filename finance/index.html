@@ -74,6 +74,13 @@ p{margin:0} .muted{color:var(--muted)} .small{font-size:14px} .num{font-variant-
 label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted);min-width:0}
 input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px;min-height:44px;font-size:16px;color:var(--ink)}
 textarea{min-height:64px;resize:vertical}
+/* iPhone draws date boxes and drop-downs at different heights: give them one look and one height */
+input[type=date],select{-webkit-appearance:none;appearance:none;height:48px;min-height:48px;line-height:1.2;padding:0 12px;display:block}
+input[type=date]{text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
+input[type=date]::-webkit-calendar-picker-indicator{opacity:.6}
+select{padding-right:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23778' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.amount select{height:auto;min-height:0;padding:4px 22px 4px 4px;border:0;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23778' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 4px center}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cats{display:flex;flex-wrap:wrap;gap:8px}
 .cats button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 14px;font-weight:600;font-size:14.5px;min-height:40px}
