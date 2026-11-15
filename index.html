@@ -92,11 +92,13 @@ p{margin:0}
 .streak{display:flex;align-items:flex-end;gap:14px}
 .streak .big-n{font-family:var(--font-display);font-weight:800;font-size:64px;line-height:.9;color:var(--dry);letter-spacing:-.03em}
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.week div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+.week button{background:none;border:0;padding:0;font:inherit;cursor:pointer}
+.week div,.week button{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
 .pip{width:100%;aspect-ratio:1;max-width:38px;border-radius:10px;background:var(--bg);border:1px dashed var(--line)}
 .pip.dry{background:var(--dry);border:0} .pip.wet{background:var(--wet);border:0}
 .pip.future{border-style:solid;opacity:.45}
 .pip.now{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
+.week button .pip:not(.dry):not(.wet){border-color:var(--muted)}
 .week .is-today{color:var(--ink);font-weight:700}
 .install{border:2px solid var(--dry)}
 .steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
@@ -107,6 +109,8 @@ p{margin:0}
 .cur-results button{border:0;border-top:1px solid var(--line);background:var(--surface);text-align:left;padding:12px;min-height:48px;display:flex;justify-content:space-between;gap:10px}
 .cur-results button:first-child{border-top:0}
 .cur-results button b{font-variant-numeric:tabular-nums}
+.dsearch{display:flex;flex-direction:column;gap:6px}
+.cur-results button>span:first-child{min-width:0}
 .need{border-color:var(--wet)!important;background:var(--wet-soft)!important}
 .banner{background:var(--gold-soft);border-radius:16px;padding:14px;display:flex;gap:12px;align-items:center}
 .banner .t{flex:1;min-width:0}
@@ -150,7 +154,7 @@ p{margin:0}
 .nudge span:first-child{font-size:22px}
 .new{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--on-wet);background:var(--wet);border-radius:6px;padding:1px 6px;margin-left:6px}
 label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted);min-width:0}
-input[type=text],input[type=number],input:not([type]),select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px;min-height:44px;font-size:16px;color:var(--ink)}
+input[type=text],input[type=number],input[type=search],input:not([type]),select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px;min-height:44px;font-size:16px;color:var(--ink)}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .drink-row{border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--surface)}
@@ -226,6 +230,79 @@ const PRESETS = [
   {key:'cider',  name:'Cider, pint',           ml:568, abv:4.5, kcal:215, price:{LKR:1400, THB:180, GBP:5.8}},
   {key:'fizz',   name:'Prosecco, 125ml',       ml:125, abv:11,  kcal:90,  price:{LKR:2400, THB:280, GBP:8}},
 ];
+// Searchable drink list: [name, extra search words, ml of the drink's alcohol part, ABV %, kcal, typical UK bar price £]
+// Units = ml × ABV ÷ 1000. Prices elsewhere start as a conversion from £ and can be changed in Settings.
+const MORE = [
+  // cocktails
+  ['Whisky sour','whiskey bourbon cocktail',50,40,190,11],['Old fashioned','whiskey bourbon cocktail',60,40,155,12],
+  ['Mojito','rum cocktail mint',50,40,220,11],['Margarita','tequila cocktail',75,40,270,11],['Frozen margarita','tequila cocktail',60,40,300,11],
+  ['Piña colada','pina colada rum cocktail',50,40,300,11],['Espresso martini','vodka coffee cocktail',70,35,230,12],
+  ['Negroni','gin campari cocktail',75,27,200,12],['Aperol spritz','spritz prosecco cocktail',150,11,170,10],
+  ['Cosmopolitan','vodka cocktail cosmo',55,40,150,11],['Daiquiri','rum cocktail',50,40,140,11],
+  ['Long Island iced tea','cocktail',100,40,280,13],['Mai tai','rum cocktail',60,40,260,12],['Caipirinha','cachaca cocktail',50,40,200,10],
+  ['Moscow mule','vodka ginger cocktail',50,40,180,10],["Dark 'n' stormy",'rum ginger cocktail dark and stormy',50,40,200,10],
+  ["Pimm's",'pimms cup',50,25,160,8],['Bloody Mary','vodka cocktail',50,40,150,11],['Martini','gin vodka dry cocktail',75,36,175,12],
+  ['Manhattan','whiskey bourbon cocktail',75,33,180,12],['Mimosa','bucks fizz prosecco cocktail',75,11,100,9],
+  ['Sex on the beach','vodka peach cocktail',75,33,230,11],['Singapore sling','gin cocktail',60,35,200,13],
+  ['Tom Collins','gin cocktail',50,40,140,10],['Paloma','tequila grapefruit cocktail',50,40,180,10],['Mint julep','bourbon whiskey cocktail',60,40,180,12],
+  ['Irish coffee','whiskey coffee',40,40,200,8],['Hot toddy','whiskey whisky',40,40,130,8],['Rum punch','cocktail',50,40,220,10],
+  ['Sangria, glass','wine',175,9,170,7],['Bellini','prosecco peach cocktail',100,11,110,10],['French 75','gin champagne cocktail',100,25,180,12],
+  ['Gimlet','gin vodka lime cocktail',60,38,170,11],['Tequila sunrise','cocktail',50,40,200,11],['Zombie','rum cocktail',90,40,300,13],
+  // spirits and mixers
+  ['Whisky, single 25ml','whiskey scotch bourbon neat',25,40,55,5],['Whisky, double 50ml','whiskey scotch bourbon neat',50,40,110,9],
+  ['Whisky & coke (double)','whiskey bourbon jack daniels and cola',50,40,200,10],['Whisky & soda (double)','whiskey highball',50,40,110,10],
+  ['Rum & coke (single)','cola bacardi',25,40,130,7],['Rum & coke (double)','cola bacardi',50,40,190,10],
+  ['Vodka & tonic (single)','',25,40,100,7],['Vodka & soda (double)','',50,40,110,10],['Vodka & lemonade (single)','',25,40,120,7],
+  ['Gin & tonic (double)','g and t gt',50,40,170,11],['Slimline gin & tonic (single)','g and t gt light diet',25,40,60,8],
+  ['Tequila shot','shot',25,40,55,4.5],['Jägerbomb','jager shot energy drink',25,35,200,6],['Sambuca shot','shot',25,38,90,4],
+  ['Baileys, 50ml','irish cream liqueur',50,17,160,5],['Brandy / cognac, 25ml','brandy cognac',25,40,55,6],
+  ['Port, 50ml','',50,20,80,5],['Sherry, 50ml','',50,17,60,4.5],['Sake, 180ml','',180,15,240,10],['Soju, bottle 360ml','korean',360,17,530,8],
+  ['Mekhong & soda','thai rum whisky',50,35,120,5],['SangSom & coke','thai rum cola',50,40,190,5],['Arrack shot','sri lanka',25,33,60,3],
+  // beer and cider
+  ['Chang, large 620ml','thai beer lager',620,5,270,3],['Singha, large 630ml','thai beer lager',630,5,270,3.5],['Leo, large 620ml','thai beer lager',620,5,260,3],
+  ['Chang / Singha / Leo, small','thai beer lager bottle can',320,5,140,2.5],['Lion lager, 625ml','sri lanka beer',625,4.8,260,3.5],
+  ['Lion stout, 625ml','sri lanka beer',625,8.8,430,4.5],['Tiger, 330ml','beer lager',330,5,140,5],['Heineken, 330ml','beer lager',330,5,140,5],
+  ['Corona, 355ml','beer lager',355,4.5,150,5],['Guinness, pint','stout beer',568,4.2,210,5.8],['IPA, pint','beer ale craft',568,5.5,250,6.5],
+  ['Bitter / ale, pint','beer real ale',568,4,200,5.5],['Craft IPA, 440ml can','beer',440,6.5,230,6],['Half pint of lager','beer',284,4,90,3],
+  ['Alcohol-free beer','0.0 0.5 non alcoholic low',330,0.5,60,4],['Cider, 500ml bottle','',500,4.5,210,5.5],['Hard seltzer, 330ml','white claw',330,4.5,100,5],
+  // wine
+  ['Wine, 125ml glass','red white rose small',125,13,115,6.5],['Wine, 250ml glass','red white rose large',250,13,230,12],
+  ['Wine, bottle 750ml','red white rose',750,13,680,30],['Champagne, flute','fizz sparkling',125,12,95,12],['Prosecco, bottle 750ml','fizz sparkling',750,11,520,30],
+].map(([name, words, ml, abv, kcal, gbp]) => ({name, words, ml, abv, kcal, price:{GBP:gbp}}));
+const PRESET_WORDS = {gt:'g and t gt single', bbeer:'lager', lbeer:'lager', pint:'beer', wine:'red white rose', dbl:'whisky whiskey vodka rum gin', arrack:'sri lanka', cider:'', fizz:'sparkling'};
+const CATALOG = [...PRESETS.map(p => ({...p, words:PRESET_WORDS[p.key] || ''})), ...MORE];
+const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/whiskey/g,'whisky').replace(/&/g,' and ').replace(/[^a-z0-9.]+/g,' ').trim();
+CATALOG.forEach(c => c.hay = ' ' + norm(c.name + ' ' + c.words) + ' ');
+function findDrinks(q){
+  const words = norm(q).split(' ').filter(Boolean); if (!words.length) return [];
+  return CATALOG.map(c => {
+    if (!words.every(w => c.hay.includes(w))) return null;
+    const n = norm(c.name); return {c, score:(n.startsWith(words[0]) ? 0 : 2) + (words.every(w => n.includes(w)) ? 0 : 1)};
+  }).filter(Boolean).sort((a,b) => a.score - b.score).slice(0, 8).map(r => r.c);
+}
+// A drink's price in a currency: the one you set, otherwise converted from any price it has
+function priceIn(d, cur){
+  const own = d.price?.[cur]; if (own != null && num(own) > 0) return num(own);
+  const r = rates(); const to = cur === 'GBP' ? 1 : num(r[cur]); if (!to) return 0;
+  for (const [k,v] of Object.entries(d.price || {})){const from = k === 'GBP' ? 1 : num(r[k]); if (from && num(v)){const x = num(v) / from * to; return to >= 20 ? Math.round(x/10)*10 : Math.round(x*2)/2;}}
+  return 0;
+}
+function drinkSearch(ctx, placeholder){
+  return `<div class="dsearch"><label class="f" for="ds-${ctx}">${placeholder}
+    <input id="ds-${ctx}" type="search" data-act-input="drinksearch" data-ctx="${ctx}" autocomplete="off" placeholder="e.g. whisky sour, Chang, red wine"></label>
+    <div class="cur-results" id="dr-${ctx}" hidden></div></div>`;
+}
+function drinkResults(ctx, q){
+  const box = $('#dr-' + ctx); if (!box) return;
+  const qt = (q || '').trim(); if (!qt){box.hidden = true; box.innerHTML = ''; return;}
+  const cur = ctx === 'settings' ? S.draft.currency : person(S.me).currency;
+  const hits = findDrinks(qt);
+  S.lastHits = hits;
+  box.innerHTML = hits.map((c,i) => `<button data-act="drinkpick" data-ctx="${ctx}" data-i="${i}"><span>${esc(c.name)}<br><span class="small muted num">${r1(unitsOf(c))} units · ${c.kcal} kcal</span></span><b>${money(priceIn(c, cur), cur)}</b></button>`).join('')
+    + `<button data-act="drinkcustom" data-ctx="${ctx}"><span>Add <b>${esc(qt.slice(0,40))}</b> as my own drink</span><span class="muted">+</span></button>`;
+  box.hidden = false;
+}
+
 const TIPS = [
   'Have your first drink of the evening be a big glass of water. Thirst often feels like wanting a beer.',
   'Cravings usually peak and fade within 20 minutes. Log it, set a timer, and see.',
@@ -312,7 +389,7 @@ const goal = () => ({...DEFAULT_GOAL, ...(S.config?.goal || {})});
 const conv = (a, from, to) => {const r = rates(); return a / (r[from]||1) * (r[to]||1);};
 function typical(w, cur){
   const p = person(w); cur = cur || p.currency;
-  return p.drinks.reduce((t,d) => {const q = num(d.qty); t.cost += q*num(d.price?.[cur]); t.units += q*unitsOf(d); t.kcal += q*num(d.kcal); t.count += q; return t;}, {cost:0, units:0, kcal:0, count:0});
+  return p.drinks.reduce((t,d) => {const q = num(d.qty); t.cost += q*priceIn(d, cur); t.units += q*unitsOf(d); t.kcal += q*num(d.kcal); t.count += q; return t;}, {cost:0, units:0, kcal:0, count:0});
 }
 const logsOf = w => Object.values(S.logs).filter(l => l.who === w);
 const logFor = (w, k) => S.logs[`${w}_${k}`];
@@ -514,7 +591,10 @@ function weekStrip(w){
   for (let i=0;i<7;i++){
     const d = addDays(mon, i), k = dkey(d), l = logFor(w, k);
     const cls = [l ? (l.type==='dry'?'dry':'wet') : '', k===tk ? 'now' : '', k>tk ? 'future' : ''].join(' ');
-    out.push(`<div class="${k===tk?'is-today':''}"><span class="pip ${cls}"></span>${'MTWTFSS'[i]}</div>`);
+    const label = `${fmtDate(k)}${l ? ', ' + (l.type==='dry' ? 'dry' : 'drinks') : ', not logged'}`;
+    out.push(w === S.me && k <= tk
+      ? `<button class="${k===tk?'is-today':''}" data-act="open" data-date="${k}" aria-label="${label}"><span class="pip ${cls}"></span>${'MTWTFSS'[i]}</button>`
+      : `<div class="${k===tk?'is-today':''}"><span class="pip ${cls}"></span>${'MTWTFSS'[i]}</div>`);
   }
   return `<div class="week">${out.join('')}</div>`;
 }
@@ -556,6 +636,7 @@ function viewToday(){
   <section class="card">
     <div class="streak"><div class="big-n num">${st.cur}</div><div><b>day${st.cur===1?'':'s'} dry in a row</b><p class="small muted">Best streak: ${st.best}</p></div></div>
     ${weekStrip(me)}
+    <p class="note">Tap any day this week to log or change it. For older days, use the Calendar tab.</p>
   </section>
   <section class="card">
     <div style="display:flex;gap:12px;align-items:center"><div class="t" style="flex:1"><h3>Fancied one?</h3><p class="small muted num">${cravWeek} craving${cravWeek===1?'':'s'} beaten this week, ${crav.length} in total</p></div>
@@ -671,7 +752,7 @@ function curResults(q){
 function viewSettings(){
   if (!S.draft){const p = person(S.me); S.draft = {currency:p.currency, drinks:JSON.parse(JSON.stringify(p.drinks)), goal:{...goal()}, rates:{...rates()}, curOpen:false};}
   const d = S.draft, cur = d.currency;
-  const t = d.drinks.reduce((a,x) => {const q = num(x.qty); a.cost += q*num(x.price?.[cur]); a.units += q*unitsOf(x); a.kcal += q*num(x.kcal); a.count += q; return a;}, {cost:0, units:0, kcal:0, count:0});
+  const t = d.drinks.reduce((a,x) => {const q = num(x.qty); a.cost += q*priceIn(x, cur); a.units += q*unitsOf(x); a.kcal += q*num(x.kcal); a.count += q; return a;}, {cost:0, units:0, kcal:0, count:0});
   const needRate = !num(d.rates[cur]) && cur !== 'GBP';
   const goalOpts = [...new Set(['GBP', cur, d.goal.currency, ...COMMON])];
   return `${syncNote()}
@@ -709,8 +790,7 @@ function viewSettings(){
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="small muted num">${r1(unitsOf(x))} units each</span><button class="btn danger small" data-act="ddel" data-i="${i}">Remove</button></div>
     </div>`).join('')}
-    <label class="f" for="s-add">Add a drink
-      <select id="s-add" data-act-change="dadd"><option value="">Choose…</option>${PRESETS.map((p,i) => `<option value="${i}">${esc(p.name)}</option>`).join('')}<option value="custom">Something else</option></select></label>
+    ${drinkSearch('settings', 'Add a drink to your typical day')}
     <p class="note">Units = ml × ABV ÷ 1000. In a new currency, prices start as a conversion from pounds. Change them to what you actually pay.</p>
   </section>
   <section class="card">
@@ -747,7 +827,7 @@ function openSheet(date, type){
   $('#sheet').hidden = false; renderSheet();
 }
 function closeSheet(){S.sheet = null; $('#sheet').hidden = true;}
-function sheetTotals(){const cur = person(S.me).currency; return S.sheet.items.reduce((t,i) => {const q = num(i.qty); t.n += q; t.cost += q*num(i.price?.[cur]); t.units += q*unitsOf(i); t.kcal += q*num(i.kcal); return t;}, {n:0,cost:0,units:0,kcal:0});}
+function sheetTotals(){const cur = person(S.me).currency; return S.sheet.items.reduce((t,i) => {const q = num(i.qty); t.n += q; t.cost += q*priceIn(i, cur); t.units += q*unitsOf(i); t.kcal += q*num(i.kcal); return t;}, {n:0,cost:0,units:0,kcal:0});}
 function renderSheet(){
   const sh = S.sheet; if (!sh) return; const cur = person(S.me).currency; const ty = typical(S.me);
   const tt = sheetTotals();
@@ -756,10 +836,10 @@ function renderSheet(){
     <div class="seg" role="group" aria-label="Day type"><button aria-pressed="${sh.type==='dry'}" data-act="stype" data-v="dry">Dry</button><button aria-pressed="${sh.type==='drinks'}" data-act="stype" data-v="drinks">Drinks</button></div>
     ${sh.type==='dry' ? `<div class="status dry"><div class="t"><b class="num">You save ${money(ty.cost, cur)}</b><p class="small muted num">${r1(ty.units)} units and ${Math.round(ty.kcal)} kcal avoided, based on your typical day</p></div></div>
       <button class="btn dry full" data-act="savelog">Save dry day</button>` : `
-      <div class="card" style="padding:4px 14px">${sh.items.map((i,k) => `<div class="line"><div class="t"><b>${esc(i.name)}</b><p class="small muted num">${money(num(i.price?.[cur]), cur)} · ${r1(unitsOf(i))} u · ${Math.round(num(i.kcal))} kcal</p></div>
+      <div class="card" style="padding:4px 14px">${sh.items.map((i,k) => `<div class="line"><div class="t"><b>${esc(i.name)}</b><p class="small muted num">${money(priceIn(i, cur), cur)} · ${r1(unitsOf(i))} u · ${Math.round(num(i.kcal))} kcal</p></div>
         <div class="stepper"><button data-act="sq" data-i="${k}" data-d="-1" aria-label="One fewer ${esc(i.name)}">−</button><output class="num">${num(i.qty)}</output><button data-act="sq" data-i="${k}" data-d="1" aria-label="One more ${esc(i.name)}">+</button></div></div>`).join('')}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="styp">Same as my typical day</button>
-      <select id="sh-add" data-act-change="sadd" aria-label="Add another drink" style="flex:1;min-width:150px"><option value="">+ Another drink…</option>${PRESETS.map((p,i) => `<option value="${i}">${esc(p.name)}</option>`).join('')}</select></div>
+      ${drinkSearch('sheet', 'Search for what you had')}
+      <button class="btn" data-act="styp">Same as my typical day</button>
       <p class="sum"><span>${tt.n} drink${tt.n===1?'':'s'} · ${r1(tt.units)} units · ${Math.round(tt.kcal)} kcal</span><span style="color:var(--wet)">${money(tt.cost, cur)}</span></p>
       <button class="btn wet full" data-act="savelog">Save drinks</button>`}
     ${sh.existed ? (S.confirmDel ? `<div class="two"><button class="btn danger" data-act="dellog">Yes, delete entry</button><button class="btn" data-act="nodel">Keep it</button></div>` : `<button class="btn ghost" data-act="askdel">Delete this day's entry</button>`) : ''}
@@ -769,7 +849,7 @@ async function saveLog(){
   const sh = S.sheet, cur = person(S.me).currency; let e;
   if (sh.type === 'dry'){const t = typical(S.me); e = {who:S.me, date:sh.date, type:'dry', items:[], cur, amount:t.cost, units:r1(t.units), kcal:Math.round(t.kcal), ts:Date.now()};}
   else {
-    const items = sh.items.filter(i => num(i.qty) > 0).map(i => ({name:i.name, qty:num(i.qty), ml:num(i.ml), abv:num(i.abv), kcal:num(i.kcal), price:num(i.price?.[cur])}));
+    const items = sh.items.filter(i => num(i.qty) > 0).map(i => ({name:i.name, qty:num(i.qty), ml:num(i.ml), abv:num(i.abv), kcal:num(i.kcal), price:priceIn(i, cur)}));
     if (!items.length){toast('Add at least one drink, or switch to Dry.'); return;}
     const t = sheetTotals(); e = {who:S.me, date:sh.date, type:'drinks', items, cur, amount:t.cost, units:r1(t.units), kcal:Math.round(t.kcal), ts:Date.now()};
   }
@@ -823,6 +903,20 @@ document.addEventListener('click', async ev => {
   else if (a === 'dq'){const x = S.draft.drinks[+b.dataset.i]; x.qty = Math.max(0, num(x.qty) + Number(b.dataset.d)); render();}
   else if (a === 'ddel'){S.draft.drinks.splice(+b.dataset.i, 1); render();}
   else if (a === 'save') saveSettings();
+  else if (a === 'drinkpick' || a === 'drinkcustom'){
+    const ctx = b.dataset.ctx;
+    const q = ($('#ds-' + ctx)?.value || '').trim();
+    const c = a === 'drinkpick' ? S.lastHits[+b.dataset.i] : {name:q.slice(0,40) || 'My drink', ml:50, abv:40, kcal:150, price:{GBP:8}};
+    if (ctx === 'sheet'){
+      const ex = S.sheet.items.find(i => i.name === c.name);
+      if (ex) ex.qty = num(ex.qty) + 1; else S.sheet.items.push(fromPreset(c, 1));
+      renderSheet();
+      if (a === 'drinkcustom') toast('Added. Its price and units are a guess. Fix them in Settings if you have it often.');
+    } else {
+      S.draft.drinks.push(fromPreset(c, 1)); fillPrices(S.draft); render();
+      if (a === 'drinkcustom') toast('Added. Set its price, ml and ABV below.');
+    }
+  }
   else if (a === 'installed'){LS.set('tdnd.installed','1'); render(); toast('Nice. Open it from the home screen from now on.');}
   else if (a === 'installlater'){S.installLater = true; render();}
   else if (a === 'showinstall'){LS.set('tdnd.installed','0'); S.installLater = false; S.tab = 'today'; S.draft = null; render(); window.scrollTo(0,0);}
@@ -844,19 +938,12 @@ function fillPrices(d){
 }
 document.addEventListener('change', ev => {
   const el = ev.target;
-  if (el.dataset.actChange === 'dadd' && el.value !== ''){
-    const p = el.value === 'custom' ? {name:'My drink', ml:0, abv:0, kcal:0, price:{}} : PRESETS[+el.value];
-    S.draft.drinks.push(fromPreset(p, 1)); render(); return;
-  }
-  if (el.dataset.actChange === 'sadd' && el.value !== ''){
-    const p = PRESETS[+el.value]; const ex = S.sheet.items.find(i => i.name === p.name);
-    if (ex) ex.qty = num(ex.qty) + 1; else S.sheet.items.push(fromPreset(p, 1));
-    renderSheet(); return;
-  }
   if (S.tab === 'settings' && S.draft && el.dataset.r && el.dataset.r === S.draft.currency && num(el.value)){fillPrices(S.draft); render();}
 });
 document.addEventListener('input', ev => {
-  const el = ev.target, d = S.draft; if (!d) return;
+  const el = ev.target;
+  if (el.dataset.actInput === 'drinksearch'){drinkResults(el.dataset.ctx, el.value); return;}
+  const d = S.draft; if (!d) return;
   if (el.dataset.actInput === 'cursearch'){const r = $('#curResults'); if (r) r.innerHTML = curResults(el.value); return;}
   if (el.dataset.k){const x = d.drinks[+el.dataset.i]; if (!x) return; if (el.dataset.k === 'name') x.name = el.value.slice(0,40); else if (el.dataset.k === 'price'){x.price = x.price || {}; x.price[el.dataset.c] = num(el.value);} else x[el.dataset.k] = num(el.value);}
   else if (el.dataset.g){d.goal[el.dataset.g] = el.dataset.g === 'amount' ? num(el.value) : el.value;}
