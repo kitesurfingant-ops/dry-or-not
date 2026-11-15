@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Thai Spend</title>
+<title>Ant & Jules' Baht to Reality</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Thai Spend">
+<meta name="apple-mobile-web-app-title" content="Baht to Reality">
 <meta name="theme-color" content="#EEF3F4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E1517" media="(prefers-color-scheme: dark)">
 <meta name="robots" content="noindex">
@@ -47,6 +47,7 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 header.top .gut{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:12px 10px}
 .brand{font-family:var(--font-display);font-weight:800;font-size:21px;letter-spacing:-.015em}
 .brand b{color:var(--in);font-weight:800}
+.brand .sub{display:block;font-family:var(--font-body);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);line-height:1.2}
 .cur{display:inline-flex;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px;gap:2px}
 .cur span{min-width:34px;height:30px;border-radius:999px;display:grid;place-items:center;font-weight:800;font-size:16px;color:var(--muted)}
 .cur span.on{background:var(--ink);color:var(--bg)}
@@ -144,7 +145,7 @@ select{padding-right:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 </head>
 <body>
 <header class="top"><div class="gut">
-  <div class="row"><div class="brand">Thai <b>Spend</b></div><button class="cur" id="curBtn" data-act="disp" aria-label="Show amounts in pounds or baht"><span data-c="THB">฿</span><span data-c="GBP">£</span></button></div>
+  <div class="row"><div class="brand"><span class="sub">Ant &amp; Jules'</span>Baht <b>to Reality</b></div><button class="cur" id="curBtn" data-act="disp" aria-label="Show amounts in pounds or baht"><span data-c="THB">฿</span><span data-c="GBP">£</span></button></div>
   <button class="chip" data-act="tab" data-tab="settings"><span class="sync" id="syncDot"></span><span id="whoName">Who?</span></button>
 </div></header>
 <main class="gut" id="view"></main>
@@ -408,7 +409,7 @@ function renderSheet(){
 function installCard(){
   if (LS.get('ts.installed') === '1' || window.navigator.standalone) return '';
   return `<section class="card" style="border:2px solid var(--in)"><p class="eyebrow">Make it an app</p><h3>Put this on your home screen</h3>
-  <ol class="steps"><li><span class="n">1</span><span>Open this page in <b>Safari</b>.</span></li><li><span class="n">2</span><span>Tap the <b>Share</b> button.</span></li><li><span class="n">3</span><span>Tap <b>Add to Home Screen</b>, name it <b>Thai Spend</b>, then <b>Add</b>.</span></li></ol>
+  <ol class="steps"><li><span class="n">1</span><span>Open this page in <b>Safari</b>.</span></li><li><span class="n">2</span><span>Tap the <b>Share</b> button.</span></li><li><span class="n">3</span><span>Tap <b>Add to Home Screen</b>, name it <b>Baht to Reality</b>, then <b>Add</b>.</span></li></ol>
   <div class="grid2"><button class="btn primary" data-act="installed">Done it</button><button class="btn" data-act="installed">Not now</button></div></section>`;
 }
 function viewSettings(){

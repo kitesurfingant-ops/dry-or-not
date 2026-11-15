@@ -9,7 +9,7 @@ A private dry-day / drinks tracker for Ant and Jules, installed on the iPhone ho
 
 Each person opens a private link of the form `https://kitesurfingant-ops.github.io/dry-or-not/#<ant|jules>.<key>` once, then adds it to the home screen. The key is not stored in this repo.
 
-## Thai Spend (`/finance/`)
+## Ant & Jules' Baht to Reality (`/finance/`)
 
 Shared expense and income log for Ant and Jules in Thailand, in the same Supabase project (tables `fin_entries`, `fin_categories`, `fin_fixed`, `fin_households`; summary view `fin_monthly_summary`).
 
