@@ -217,6 +217,9 @@ input[type=text],input[type=number],input[type=search],input:not([type]),select{
 <script src="config.js"></script>
 
 <script>
+/* ---------- version: bump this on every change so phones pick up the update ---------- */
+const APP_VERSION = '2026-11-15.2';
+
 /* ---------- constants ---------- */
 const NAMES = {ant:'Ant', jules:'Jules'};
 const other = w => w === 'ant' ? 'jules' : 'ant';
@@ -1044,6 +1047,26 @@ async function saveSettings(){
   S.draft = null; render();
   if (ok1 && ok2) toast('Settings saved');
 }
+
+// Auto-update: when the app opens or comes back to the screen, fetch the live page fresh
+// (skipping any saved copy). If it carries a newer APP_VERSION, reload onto it.
+async function checkForUpdate(){
+  if (S.sheet || !$('#sheet').hidden) return;                      // never interrupt someone mid-entry
+  try {
+    const r = await fetch(location.pathname + '?check=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) return;
+    const m = (await r.text()).match(/const APP_VERSION = '([^']+)'/);
+    if (!m || m[1] === APP_VERSION) return;
+    let tried = null; try {tried = sessionStorage.getItem('tdnd.tried');} catch(e){}
+    if (tried === m[1]) return;                                     // already tried this one; don't loop
+    try {sessionStorage.setItem('tdnd.tried', m[1]);} catch(e){}
+    LS.set('tdnd.updated', m[1]);
+    location.replace(location.pathname + '?v=' + encodeURIComponent(m[1]) + location.hash);
+  } catch(e){}
+}
+document.addEventListener('visibilitychange', () => {if (!document.hidden) checkForUpdate();});
+setTimeout(checkForUpdate, 1500);
+if (LS.get('tdnd.updated') === APP_VERSION){LS.set('tdnd.updated', ''); setTimeout(() => toast('App updated to the latest version'), 800);}
 
 boot();
 </script>

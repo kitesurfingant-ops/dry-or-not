@@ -8,3 +8,7 @@ A private dry-day / drinks tracker for Ant and Jules, installed on the iPhone ho
 - `icon-*.png` – home screen icon
 
 Each person opens a private link of the form `https://kitesurfingant-ops.github.io/dry-or-not/#<ant|jules>.<key>` once, then adds it to the home screen. The key is not stored in this repo.
+
+
+## Updating
+Bump `APP_VERSION` near the top of the script in `index.html` with every change. When the app opens, it fetches the live page fresh, and if the version differs it reloads onto the new one, so neither phone is stuck on a cached copy.
