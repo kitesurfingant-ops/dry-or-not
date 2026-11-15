@@ -47,6 +47,9 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 header.top .gut{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:12px 10px}
 .brand{font-family:var(--font-display);font-weight:800;font-size:21px;letter-spacing:-.015em}
 .brand b{color:var(--in);font-weight:800}
+.cur{display:inline-flex;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px;gap:2px}
+.cur span{min-width:34px;height:30px;border-radius:999px;display:grid;place-items:center;font-weight:800;font-size:16px;color:var(--muted)}
+.cur span.on{background:var(--ink);color:var(--bg)}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:6px}
 .sync{width:8px;height:8px;border-radius:50%;background:var(--muted)} .sync.ok{background:var(--in)} .sync.bad{background:var(--out)}
 main.gut{padding-block:6px calc(96px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
@@ -141,7 +144,7 @@ select{padding-right:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 </head>
 <body>
 <header class="top"><div class="gut">
-  <div class="brand">Thai <b>Spend</b></div>
+  <div class="row"><div class="brand">Thai <b>Spend</b></div><button class="cur" id="curBtn" data-act="disp" aria-label="Show amounts in pounds or baht"><span data-c="THB">฿</span><span data-c="GBP">£</span></button></div>
   <button class="chip" data-act="tab" data-tab="settings"><span class="sync" id="syncDot"></span><span id="whoName">Who?</span></button>
 </div></header>
 <main class="gut" id="view"></main>
@@ -170,6 +173,10 @@ const monthName = m => monthStart(m).toLocaleDateString('en-GB',{month:'long', y
 const num = v => {const n = Number(v); return Number.isFinite(n) ? n : 0;};
 const thb = v => '฿' + Math.round(num(v)).toLocaleString('en-GB');
 const gbp = v => '£' + num(v).toLocaleString('en-GB',{minimumFractionDigits:0, maximumFractionDigits:0});
+const gbp2 = v => '£' + num(v).toLocaleString('en-GB',{minimumFractionDigits:Math.abs(v)<100?2:0, maximumFractionDigits:Math.abs(v)<100?2:0});
+// Display currency: tap the ฿/£ switch in the header. Everything is stored in baht; £ is worked out with the rate in Settings.
+const money = v => S.disp === 'GBP' ? gbp2(num(v)*rate()) : thb(v);   // main figure
+const alt = v => S.disp === 'GBP' ? thb(v) : gbp2(num(v)*rate());     // the small figure underneath
 const NAMES = {ant:'Ant', jules:'Jules', joint:'Joint'};
 const other = w => w === 'ant' ? 'jules' : 'ant';
 
@@ -184,7 +191,7 @@ const C = window.FIN_CONFIG || {};
 const S = {
   me: LS.get('ts.me') || ((location.hash.match(/^#(ant|jules)\./) || [])[1]) || null, tab: 'add', sync: 'idle',
   cfg: null, entries: {}, month: mkey(new Date()),
-  draft: null, search: '', sheet: null, settingsDraft: null,
+  disp: LS.get('ts.disp') === 'GBP' ? 'GBP' : 'THB', draft: null, search: '', sheet: null, settingsDraft: null,
 };
 try {const c = JSON.parse(LS.get('ts.cache') || 'null'); if (c){S.cfg = c.cfg; S.entries = c.entries || {};}} catch(e){}
 
@@ -246,6 +253,7 @@ function toast(msg){const t = $('#toast'); t.textContent = msg; t.hidden = false
 /* ---------- render ---------- */
 function render(fromPoll){
   $('#whoName').textContent = S.me ? NAMES[S.me] : 'Who?';
+  document.querySelectorAll('#curBtn span').forEach(x => x.classList.toggle('on', x.dataset.c === S.disp));
   document.querySelectorAll('nav.tabs button').forEach(b => b.dataset.tab === S.tab ? b.setAttribute('aria-current','page') : b.removeAttribute('aria-current'));
   if (fromPoll && (S.tab === 'add' || S.tab === 'settings') && S.me && HKEY) return;  // don't clobber a form being filled in
   const v = $('#view');
@@ -297,8 +305,8 @@ function viewAdd(){
   const recent = monthRows(m).filter(r => !r.is_fixed).slice(0, 5);
   return `${syncNote()}${installCard()}
   <section class="card">${formHtml(S.draft)}</section>
-  <section class="card"><div class="mhead"><h3>${monthName(m)} so far</h3><span class="num" style="font-weight:700">${thb(s.out)}</span></div>
-    <p class="small muted num">Left from ${thb(s.inc)} in: <b style="color:${s.inc-s.out<0?'var(--out)':'var(--in)'}">${thb(s.inc - s.out)}</b> (${gbp((s.inc - s.out)*rate())})</p>
+  <section class="card"><div class="mhead"><h3>${monthName(m)} so far</h3><span class="num" style="font-weight:700">${money(s.out)}</span></div>
+    <p class="small muted num">Left from ${money(s.inc)} in: <b style="color:${s.inc-s.out<0?'var(--out)':'var(--in)'}">${money(s.inc - s.out)}</b> (${alt(s.inc - s.out)})</p>
     ${recent.length ? `<div class="list">${recent.map(entRow).join('')}</div>` : `<p class="small muted">Nothing logged yet this month.</p>`}
   </section>`;
 }
@@ -323,7 +331,7 @@ async function saveDraft(){
     orig_currency: d.cur === 'GBP' ? 'GBP' : null, orig_amount: d.cur === 'GBP' ? amt : null, who:d.who, notes:d.notes.trim(), created_by:S.me};
   try {
     await rpc('fin_put', {p_e: body});
-    toast(d.id ? 'Saved' : `${d.kind==='spend'?'Spend':'Money in'} added: ${thb(amount_thb)}`);
+    toast(d.id ? 'Saved' : `${d.kind==='spend'?'Spend':'Money in'} added: ${money(amount_thb)}`);
     if (S.sheet) S.sheet = null; else S.draft = blankDraft(d.kind);
     await refresh(true); render();
   } catch(e){toast('Could not save. Check your connection and try again.');}
@@ -340,20 +348,20 @@ function viewMonth(){
   return `${syncNote()}
   <div class="mhead"><button class="btn ghost" data-act="month" data-d="-1" aria-label="Previous month">‹</button><h2>${monthName(m)}</h2><button class="btn ghost" data-act="month" data-d="1" aria-label="Next month">›</button></div>
   ${!s.hasFixed && m >= mkey(new Date()) && (S.cfg?.fixed||[]).length ? `<div class="banner"><div class="t"><b>Fixed items not added yet</b><p class="small">Rent, car, cleaning, salary and house money for ${monthStart(m).toLocaleDateString('en-GB',{month:'long'})}.</p></div><button class="btn primary" data-act="applyfixed">Add them</button></div>` : ''}
-  <section class="left ${left<0?'neg':''}"><p class="eyebrow">Left over</p><span class="v">${thb(left)}</span><span class="small num muted">${gbp(left*r)} · from ${thb(s.inc)} in</span></section>
+  <section class="left ${left<0?'neg':''}"><p class="eyebrow">Left over</p><span class="v">${money(left)}</span><span class="small num muted">${alt(left)} · from ${money(s.inc)} in</span></section>
   <div class="tiles">
-    <div class="tile i"><span class="eyebrow">Money in</span><span class="v">${thb(s.inc)}</span><span class="small muted num">${gbp(s.inc*r)}</span></div>
-    <div class="tile o"><span class="eyebrow">Spent</span><span class="v">${thb(s.out)}</span><span class="small muted num">${gbp(s.out*r)}</span></div>
-    <div class="tile"><span class="eyebrow">Per day</span><span class="v">${thb(s.out/dayN)}</span><span class="small muted num">${isNow?`over ${dayN} days so far`:`${dayN}-day month`}</span></div>
-    <div class="tile"><span class="eyebrow">Vs ${monthStart(addMonths(m,-1)).toLocaleDateString('en-GB',{month:'short'})}</span><span class="v" style="color:${diff>0?'var(--out)':'var(--in)'}">${p.n ? (diff>0?'+':'−') + thb(Math.abs(diff)).slice(1) : '–'}</span><span class="small muted num">${p.n ? `spent ${thb(p.out)}` : 'no data'}</span></div>
+    <div class="tile i"><span class="eyebrow">Money in</span><span class="v">${money(s.inc)}</span><span class="small muted num">${alt(s.inc)}</span></div>
+    <div class="tile o"><span class="eyebrow">Spent</span><span class="v">${money(s.out)}</span><span class="small muted num">${alt(s.out)}</span></div>
+    <div class="tile"><span class="eyebrow">Per day</span><span class="v">${money(s.out/dayN)}</span><span class="small muted num">${isNow?`over ${dayN} days so far`:`${dayN}-day month`}</span></div>
+    <div class="tile"><span class="eyebrow">Vs ${monthStart(addMonths(m,-1)).toLocaleDateString('en-GB',{month:'short'})}</span><span class="v" style="color:${diff>0?'var(--out)':'var(--in)'}">${p.n ? (diff>0?'+':'−') + money(Math.abs(diff)) : '–'}</span><span class="small muted num">${p.n ? `spent ${money(p.out)}` : 'no data'}</span></div>
   </div>
   <section class="card"><h3>Where it went</h3>
-    ${catList.length ? `<div class="bars">${catList.map(([c,v]) => `<div class="b"><div class="top"><span>${esc(c)}</span><span>${thb(v)} <span class="muted" style="font-weight:500">${Math.round(v/Math.max(1,s.out)*100)}%</span></span></div><div class="track"><i style="width:${(v/max*100).toFixed(1)}%"></i></div></div>`).join('')}</div>` : `<p class="small muted">No spending logged for this month.</p>`}
-    ${s.fixedOut ? `<p class="note num">Fixed items: ${thb(s.fixedOut)} · day-to-day: ${thb(s.out - s.fixedOut)}</p>` : ''}
+    ${catList.length ? `<div class="bars">${catList.map(([c,v]) => `<div class="b"><div class="top"><span>${esc(c)}</span><span>${money(v)} <span class="muted" style="font-weight:500">${Math.round(v/Math.max(1,s.out)*100)}%</span></span></div><div class="track"><i style="width:${(v/max*100).toFixed(1)}%"></i></div></div>`).join('')}</div>` : `<p class="small muted">No spending logged for this month.</p>`}
+    ${s.fixedOut ? `<p class="note num">Fixed items: ${money(s.fixedOut)} · day-to-day: ${money(s.out - s.fixedOut)}</p>` : ''}
   </section>
   <section class="card"><h3>Who spent it</h3>
     <div class="split">${['ant','jules','joint'].map(w => `<i style="width:${(who[w]/wt*100).toFixed(1)}%;background:var(--${w})"></i>`).join('')}</div>
-    <div class="legend">${['ant','jules','joint'].filter(w => who[w] > 0).map(w => `<span class="num"><i style="background:var(--${w})"></i>${NAMES[w]} ${thb(who[w])}</span>`).join('') || '<span>Nothing yet</span>'}</div>
+    <div class="legend">${['ant','jules','joint'].filter(w => who[w] > 0).map(w => `<span class="num"><i style="background:var(--${w})"></i>${NAMES[w]} ${money(who[w])}</span>`).join('') || '<span>Nothing yet</span>'}</div>
   </section>
   <button class="btn full" data-act="tab" data-tab="entries">See all ${s.n} entries</button>`;
 }
@@ -362,7 +370,7 @@ function viewMonth(){
 function entRow(r){
   const w = r.who || 'none';
   const sub = [r.category, r.orig_currency === 'GBP' ? `£${num(r.orig_amount)}` : '', r.is_fixed ? 'fixed' : ''].filter(Boolean).join(' · ');
-  return `<button class="ent" data-act="edit" data-id="${r.id}"><span class="who ${w}">${w==='none'?'·':NAMES[w][0]}</span><span class="t"><b>${esc(r.item)}</b><span class="small muted">${esc(sub)}</span></span><span class="a ${r.kind==='income'?'inc':''}">${r.kind==='income'?'+':''}${thb(r.amount_thb)}</span></button>`;
+  return `<button class="ent" data-act="edit" data-id="${r.id}"><span class="who ${w}">${w==='none'?'·':NAMES[w][0]}</span><span class="t"><b>${esc(r.item)}</b><span class="small muted">${esc(sub)}</span></span><span class="a ${r.kind==='income'?'inc':''}">${r.kind==='income'?'+':''}${money(r.amount_thb)}</span></button>`;
 }
 function viewEntries(){
   const m = S.month, q = S.search.trim().toLowerCase();
@@ -441,6 +449,7 @@ document.addEventListener('click', async e => {
   if (S.tab === 'settings') readSettings();
   switch (a){
     case 'tab': S.tab = b.dataset.tab; if (S.tab !== 'settings') S.settingsDraft = null; window.scrollTo(0,0); render(); break;
+    case 'disp': S.disp = S.disp === 'GBP' ? 'THB' : 'GBP'; LS.set('ts.disp', S.disp); render(); break;
     case 'pick': S.me = b.dataset.who; LS.set('ts.me', S.me); if (S.draft) S.draft.who = S.me; render(); break;
     case 'month': S.month = addMonths(S.month, +b.dataset.d); render(); refresh(true); break;
     case 'dkind': {const d = S.sheet ? S.sheet.d : S.draft; d.kind = b.dataset.v; d.category = ''; S.sheet ? renderSheet() : render(); break;}
