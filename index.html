@@ -111,6 +111,11 @@ p{margin:0}
 .cur-results button b{font-variant-numeric:tabular-nums}
 .dsearch{display:flex;flex-direction:column;gap:6px}
 .cur-results button>span:first-child{min-width:0}
+.goal-row{display:flex;align-items:center;gap:14px}
+.pct{font-family:var(--font-display);font-weight:800;font-size:40px;line-height:1;color:var(--gold);letter-spacing:-.02em;min-width:2.6ch}
+.goal.won{border-color:var(--dry)}
+.check{display:flex;gap:10px;align-items:center;font-size:14px}
+.check input{width:22px;height:22px;accent-color:var(--dry)}
 .need{border-color:var(--wet)!important;background:var(--wet-soft)!important}
 .banner{background:var(--gold-soft);border-radius:16px;padding:14px;display:flex;gap:12px;align-items:center}
 .banner .t{flex:1;min-width:0}
@@ -386,6 +391,10 @@ function defaultPerson(w){return {currency: w==='ant' ? 'LKR' : 'THB', drinks:[f
 const person = w => S.people[w] || defaultPerson(w);
 const rates = () => ({...DEFAULT_RATES, ...(S.config?.rates || {})});
 const goal = () => ({...DEFAULT_GOAL, ...(S.config?.goal || {})});
+// Saved towards the current goal, by both of you, since the goal was set
+const goalSaved = gl => totals(['ant','jules'], gl.currency, gl.start || null).saved;
+// Roughly what one dry day is worth towards the goal, averaged across you both
+const perDryDay = gl => (typical('ant', gl.currency).cost + typical('jules', gl.currency).cost) / 2;
 const conv = (a, from, to) => {const r = rates(); return a / (r[from]||1) * (r[to]||1);};
 function typical(w, cur){
   const p = person(w); cur = cur || p.currency;
@@ -405,22 +414,23 @@ function streaks(w){
   for (const k of dry){run = (prev && dkey(addDays(parseKey(prev),1))===k) ? run+1 : 1; best = Math.max(best,run); prev = k;}
   return {cur, best};
 }
-function totals(ws, cur){
+function totals(ws, cur, since){
   const t = {saved:0, spent:0, dry:0, wet:0, kcalAvoided:0, kcalIn:0, units7:0, unitsAll:0, cravings:0};
   const from = dkey(addDays(new Date(), -6));
   for (const w of ws){
     for (const l of logsOf(w)){
+      if (since && l.date < since) continue;
       const a = conv(num(l.amount), l.cur || 'GBP', cur);
       if (l.type === 'dry'){t.saved += a; t.dry++; t.kcalAvoided += num(l.kcal);}
       else {t.spent += a; t.wet++; t.kcalIn += num(l.kcal); t.unitsAll += num(l.units); if (l.date >= from) t.units7 += num(l.units);}
     }
-    t.cravings += (S.cravings[w]?.items || []).length;
+    t.cravings += (S.cravings[w]?.items || []).filter(c => !since || c.date >= since).length;
   }
   return t;
 }
 function badgesFor(ws){
   const g = totals(ws, 'GBP'); const best = Math.max(...ws.map(w => streaks(w).best));
-  const gl = goal(); const pooled = totals(['ant','jules'], gl.currency).saved;
+  const gl = goal(); const pooled = goalSaved(gl);
   const cur = ws.length===1 ? person(ws[0]).currency : gl.currency;
   const m = gbp => money(conv(gbp,'GBP',cur), cur).replace(/\.00$/,'');
   return [
@@ -435,7 +445,7 @@ function badgesFor(ws){
     {k:'1k', label:`Saved ${m(1000)}`, on:g.saved>=1000},
     {k:'10✕', label:'10 cravings beaten', on:g.cravings>=10},
     {k:'50✕', label:'50 cravings beaten', on:g.cravings>=50},
-    {k:'★', label:`${gl.name} funded`, on:pooled>=gl.amount && gl.amount>0},
+    {k:'★', label:'First goal reached', on:(S.config?.done || []).length > 0 || (pooled>=gl.amount && gl.amount>0)},
   ];
 }
 
@@ -679,11 +689,59 @@ function viewCalendar(){
     <div class="tile r"><span class="eyebrow">Drink days</span><span class="v">${wet}</span><span class="small muted num">spent ${money(mt.p, p.currency)}</span></div>
   </div>`;
 }
+function goalCard(gl, pooled, gp){
+  const reached = gl.amount > 0 && pooled >= gl.amount;
+  const left = Math.max(0, gl.amount - pooled), per = perDryDay(gl);
+  const days = per > 0 ? Math.ceil(left / per) : null;
+  const done = (S.config?.done || []).slice(-3).reverse();
+  return `<section class="card goal ${reached ? 'won' : ''}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><p class="eyebrow">Our savings goal</p><button class="btn ghost small" data-act="goaledit">Edit goal</button></div>
+    <h2>${esc(gl.name)}</h2>
+    <div class="goal-row"><span class="pct num">${Math.floor(gp)}%</span>
+      <div style="flex:1;min-width:0"><div class="bar gold" role="img" aria-label="${Math.floor(gp)} percent saved"><i style="width:${gp}%"></i></div>
+      <p class="num small" style="margin-top:6px"><b>${money(pooled, gl.currency)}</b> <span class="muted">of ${money(gl.amount, gl.currency)}</span></p></div></div>
+    ${reached
+      ? `<div class="status dry"><div class="t"><b>Goal reached! Time to book ${esc(gl.name)}.</b><p class="small muted">Every dry day since ${gl.start ? fmtDate(gl.start) : 'the start'} got you here.</p></div></div>
+         <button class="btn dry full" data-act="goalnew">Start a new goal</button>`
+      : `<p class="small"><b class="num">${money(left, gl.currency)} to go</b>${days != null ? ` <span class="muted">· about ${days} more dry day${days===1?'':'s'} between you</span>` : ''}</p>`}
+    <p class="note">Every dry day from either of you adds that person's typical day${gl.start ? `. Counting from ${fmtDate(gl.start)}` : ''}.</p>
+    ${done.length ? `<div class="list">${done.map(g => `<div class="item"><div class="emo">★</div><div class="t"><b>${esc(g.name)}</b><p class="small muted num">${money(num(g.amount), g.currency)} saved · reached ${fmtDate(g.reached)}</p></div></div>`).join('')}</div>` : ''}
+  </section>`;
+}
+function openGoal(fresh){
+  const gl = goal(); S.sheet = null; S.goalFresh = fresh; $('#sheet').hidden = false;
+  const opts = [...new Set([gl.currency, 'GBP', person(S.me).currency, person(other(S.me)).currency, ...COMMON])];
+  $('#sheetPanel').innerHTML = `<div class="grab"></div><div class="gut">
+    <div class="sheet-head"><div><p class="eyebrow">Shared with ${NAMES[other(S.me)]}</p><h2>${fresh ? 'A new goal' : 'Our savings goal'}</h2></div><button class="btn ghost" data-act="close">Close</button></div>
+    <label class="f" for="g-name">What are you saving for?<input id="g-name" maxlength="60" value="${fresh ? '' : esc(gl.name)}" placeholder="e.g. Dive weekend in Koh Tao"></label>
+    <div class="grid2">
+      <label class="f" for="g-amt">How much do you need?<input id="g-amt" type="number" inputmode="decimal" value="${fresh ? '' : num(gl.amount)}" placeholder="e.g. 15000"></label>
+      <label class="f" for="g-cur">Currency<select id="g-cur">${opts.map(c => `<option value="${c}" ${gl.currency===c?'selected':''}>${c}</option>`).join('')}</select></label>
+    </div>
+    ${fresh ? `<p class="note">Savings for this goal count from today.</p>` : `<label class="check" for="g-reset"><input id="g-reset" type="checkbox"> Start counting from today (use this for a brand new goal)</label>`}
+    <button class="btn dry full" data-act="goalsave">Save goal</button>
+  </div>`;
+  setTimeout(() => $('#g-name')?.focus(), 50);
+}
+async function saveGoal(){
+  const name = ($('#g-name')?.value || '').trim().slice(0,60), amount = num($('#g-amt')?.value), currency = $('#g-cur')?.value || 'GBP';
+  if (!name){toast('Give the goal a name.'); $('#g-name')?.focus(); return;}
+  if (!(amount > 0)){toast('Enter how much you need to save.'); $('#g-amt')?.focus(); return;}
+  const old = goal(); const fresh = S.goalFresh || $('#g-reset')?.checked;
+  const cfg = {...(S.config || {}), rates:{...rates(), GBP:1}};
+  if (fresh){
+    const saved = goalSaved(old);
+    if (S.goalFresh && old.amount > 0 && saved >= old.amount) cfg.done = [...(cfg.done || []), {name:old.name, amount:old.amount, currency:old.currency, reached:todayKey()}].slice(-20);
+    cfg.goal = {name, amount, currency, start:todayKey()};
+  } else cfg.goal = {...old, name, amount, currency};
+  S.config = cfg; closeSheet(); render();
+  if (await write('config/shared', cfg)) toast(fresh ? `New goal set: ${name}` : 'Goal updated');
+}
 function viewProgress(){
   const sel = S.progWho; const ws = sel==='both' ? ['ant','jules'] : [sel==='me' ? S.me : other(S.me)];
   const cur = sel==='both' ? goal().currency : person(ws[0]).currency;
   const t = totals(ws, cur); const lim = UK_WEEKLY_UNITS * ws.length; const pct = Math.min(100, t.units7/lim*100);
-  const gl = goal(); const pooled = totals(['ant','jules'], gl.currency).saved; const gp = gl.amount>0 ? Math.min(100, pooled/gl.amount*100) : 0;
+  const gl = goal(); const pooled = goalSaved(gl); const gp = gl.amount>0 ? Math.min(100, pooled/gl.amount*100) : 0;
   const bs = badgesFor(ws);
   return `${syncNote()}
   <div class="seg" role="group" aria-label="Whose progress">
@@ -691,13 +749,7 @@ function viewProgress(){
     <button aria-pressed="${sel==='other'}" data-act="prog" data-v="other">${NAMES[other(S.me)]}</button>
     <button aria-pressed="${sel==='both'}" data-act="prog" data-v="both">Both</button>
   </div>
-  <section class="card">
-    <p class="eyebrow">Joint savings goal</p>
-    <h2>${esc(gl.name)}</h2>
-    <div class="bar gold" role="img" aria-label="${Math.round(gp)} percent"><i style="width:${gp}%"></i></div>
-    <p class="num"><b>${money(pooled, gl.currency)}</b> <span class="muted">of ${money(gl.amount, gl.currency)} · ${pooled>=gl.amount ? 'Book it!' : money(gl.amount-pooled, gl.currency)+' to go'}</span></p>
-    <p class="note">Every dry day from both of you adds your typical day's cost. Change the goal in Settings.</p>
-  </section>
+  ${goalCard(gl, pooled, gp)}
   <div class="tiles">
     <div class="tile g"><span class="eyebrow">Saved</span><span class="v">${money(t.saved, cur)}</span><span class="small muted num">${t.dry} dry day${t.dry===1?'':'s'}</span></div>
     <div class="tile r"><span class="eyebrow">Spent</span><span class="v">${money(t.spent, cur)}</span><span class="small muted num">${t.wet} drink day${t.wet===1?'':'s'}</span></div>
@@ -754,7 +806,6 @@ function viewSettings(){
   const d = S.draft, cur = d.currency;
   const t = d.drinks.reduce((a,x) => {const q = num(x.qty); a.cost += q*priceIn(x, cur); a.units += q*unitsOf(x); a.kcal += q*num(x.kcal); a.count += q; return a;}, {cost:0, units:0, kcal:0, count:0});
   const needRate = !num(d.rates[cur]) && cur !== 'GBP';
-  const goalOpts = [...new Set(['GBP', cur, d.goal.currency, ...COMMON])];
   return `${syncNote()}
   <section class="card">
     <p class="eyebrow">This phone</p>
@@ -792,14 +843,6 @@ function viewSettings(){
     </div>`).join('')}
     ${drinkSearch('settings', 'Add a drink to your typical day')}
     <p class="note">Units = ml × ABV ÷ 1000. In a new currency, prices start as a conversion from pounds. Change them to what you actually pay.</p>
-  </section>
-  <section class="card">
-    <p class="eyebrow">Joint savings goal (shared)</p>
-    <label class="f" for="g-name">What are you saving for?<input id="g-name" data-g="name" value="${esc(d.goal.name)}"></label>
-    <div class="grid2">
-      <label class="f" for="g-amt">Target<input id="g-amt" type="number" inputmode="decimal" data-g="amount" value="${num(d.goal.amount)}"></label>
-      <label class="f" for="g-cur">Currency<select id="g-cur" data-g="currency">${goalOpts.map(c => `<option value="${c}" ${d.goal.currency===c?'selected':''}>${c}</option>`).join('')}</select></label>
-    </div>
   </section>
   <section class="card">
     <p class="eyebrow">Exchange rates (shared)</p>
@@ -903,6 +946,9 @@ document.addEventListener('click', async ev => {
   else if (a === 'dq'){const x = S.draft.drinks[+b.dataset.i]; x.qty = Math.max(0, num(x.qty) + Number(b.dataset.d)); render();}
   else if (a === 'ddel'){S.draft.drinks.splice(+b.dataset.i, 1); render();}
   else if (a === 'save') saveSettings();
+  else if (a === 'goaledit') openGoal(false);
+  else if (a === 'goalnew') openGoal(true);
+  else if (a === 'goalsave') saveGoal();
   else if (a === 'drinkpick' || a === 'drinkcustom'){
     const ctx = b.dataset.ctx;
     const q = ($('#ds-' + ctx)?.value || '').trim();
@@ -958,8 +1004,8 @@ async function saveSettings(){
   const drinks = d.drinks.filter(x => x.name.trim()).map(x => ({id:x.id, name:x.name.trim(), ml:num(x.ml), abv:num(x.abv), kcal:num(x.kcal), qty:num(x.qty), price:x.price || {}}));
   const pd = {currency:d.currency, drinks}; S.people = {...S.people, [S.me]:pd};
   const rt = {GBP:1}; for (const [k,v] of Object.entries(d.rates)) if (num(v) > 0 && k !== 'GBP') rt[k] = num(v);
-  const cfg = {goal:{name:(d.goal.name||'Savings goal').slice(0,60), amount:num(d.goal.amount), currency:d.goal.currency}, rates:rt};
-  const cfgChanged = JSON.stringify(cfg) !== JSON.stringify({goal:goal(), rates:{...rates(), GBP:1}});
+  const cfg = {...(S.config || {}), goal:goal(), rates:rt};
+  const cfgChanged = JSON.stringify(rt) !== JSON.stringify({...rates(), GBP:1});
   const ok1 = await write(`people/${S.me}`, pd);
   const ok2 = cfgChanged ? await write('config/shared', cfg) : true;
   if (cfgChanged) S.config = cfg;
